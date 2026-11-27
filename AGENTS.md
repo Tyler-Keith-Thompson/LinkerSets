@@ -227,6 +227,7 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 | `just mutate <Module> [--all]` | Mutation testing: every planted bug in `scripts/mutants/<Module>.py` must be caught |
 | `just wasi-test [-c release] [--targets X,Y]` | SwiftPM tests on wasm32-wasi under wasmtime: a 32-bit `Int` |
 | `just test-release` | `--config=release`: builds and runs only the `XPerformanceTests` targets |
+| `just apple-test [--platforms tvOS,watchOS]` | xcodebuild the package for watchOS devices (arm64_32) and test it on the tvOS, watchOS and visionOS simulators and Mac Catalyst; logs in `.build/apple/logs` |
 | `just spm-test`, `just verify` | SwiftPM tests; both build systems |
 | `just modules` | Regenerate build files from `scripts/modules.py` |
 | `just sources` | Rewrite the checked-in copies of generated sources (`GENERATED_SOURCES`) that SwiftPM compiles |

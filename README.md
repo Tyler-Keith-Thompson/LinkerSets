@@ -140,7 +140,7 @@ same layout as Swift Testing's, but the library doesn't depend on it.
 |---|---|
 | macOS | Supported and tested, in debug and release builds, across static and dynamic libraries and ones loaded later with `dlopen` |
 | Linux | Supported and tested, in debug and release builds, across static and dynamic libraries and ones loaded later with `dlopen` |
-| iOS, tvOS, watchOS, visionOS, Mac Catalyst | Same reader as macOS; not yet tested on devices or simulators |
+| iOS, tvOS, watchOS, visionOS, Mac Catalyst | Tested in the iOS, tvOS, watchOS and visionOS simulators and on Mac Catalyst; built for watchOS devices, including the 32-bit arm64_32 |
 | Android, FreeBSD | Same reader as Linux; not yet tested |
 | WebAssembly (WASI) | Supported and tested under wasmtime, in debug and release builds; a WebAssembly program is one statically linked module |
 | Windows | Not yet: `LinkerSet` isn't available there |

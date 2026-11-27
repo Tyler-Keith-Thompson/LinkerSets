@@ -66,6 +66,13 @@ fileprivate func loadedLibraryPath() -> String? {
     if let bundle = directory.lastIndex(where: { $0.hasSuffix(".xctest") }) {
         directory = directory[..<bundle]
     }
-    return (directory + [Substring(file)]).joined(separator: "/")
+    let path = (directory + [Substring(file)]).joined(separator: "/")
+    #if objectFormat(MachO)
+    // xcodebuild builds a dynamic product as a framework in PackageFrameworks, beside the bundle.
+    if access(path, F_OK) != 0 {
+        return (directory + ["PackageFrameworks", "ExampleLoadedPlugins.framework", "ExampleLoadedPlugins"]).joined(separator: "/")
+    }
+    #endif
+    return path
 }
 #endif

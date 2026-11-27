@@ -86,6 +86,10 @@ mutate module *args="":
 wasi-test *args="":
     python3 -u {{PROJECT_ROOT}}/scripts/wasi_test.py {{args}}
 
+[doc('xcodebuild the package for watchOS devices (arm64_32) and test it on the tvOS, watchOS and visionOS simulators and Mac Catalyst, e.g. just apple-test --platforms tvOS,watchOS')]
+apple-test *args="":
+    python3 -u {{PROJECT_ROOT}}/scripts/apple_test.py {{args}}
+
 [doc('Generate an Xcode project from the Bazel graph and open it')]
 generate *args="":
     @bash scripts/generate-xcodeproj.sh {{args}}

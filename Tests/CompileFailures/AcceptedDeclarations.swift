@@ -1,6 +1,23 @@
 // The control for the @LinkerSetEntry fixtures: every declaration a record describes compiles.
 import LinkerSets
 
+@MainActor
+enum Screens {
+    @LinkerSetEntry(kind: 0x6366_0100)
+    static func show() {}
+
+    @LinkerSetEntry(kind: 0x6366_0100)
+    nonisolated static func describe() -> String { "" }
+
+    @LinkerSetEntry(kind: 0x6366_0100)
+    static let title = "Screens"
+}
+
+enum Menu {
+    @MainActor @LinkerSetEntry(kind: 0x6366_0100)
+    static func open() {}
+}
+
 enum Settings {
     @LinkerSetEntry(kind: 0x6366_0100)
     static let volume = 1

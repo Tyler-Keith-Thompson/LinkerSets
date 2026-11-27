@@ -166,3 +166,25 @@ swift_compile_failure_test(
     deps = ["//Sources/ExampleEvents"],
 )
 
+
+swift_compile_failure_test(
+    name = "MainActorProperty",
+    size = "small",
+    src = "MainActorProperty.swift",
+    expected_errors = ["error: '@LinkerSetEntry' cannot apply to a property isolated to the main actor: a record's accessor is nonisolated and can't read it; mark the property nonisolated, or register a @MainActor function that returns it"],
+    plugin = "//Sources/LinkerSetsMacros",
+    plugin_module_name = "LinkerSetsMacros",
+    tags = ["debug-only"],
+    deps = ["//Sources/LinkerSets"],
+)
+
+swift_compile_failure_test(
+    name = "MainActorTypeVariable",
+    size = "small",
+    src = "MainActorTypeVariable.swift",
+    expected_errors = ["error: '@LinkerSetEntry' cannot apply to a property isolated to the main actor: a record's accessor is nonisolated and can't read it; mark the property nonisolated, or register a @MainActor function that returns it"],
+    plugin = "//Sources/LinkerSetsMacros",
+    plugin_module_name = "LinkerSetsMacros",
+    tags = ["debug-only"],
+    deps = ["//Sources/LinkerSets"],
+)

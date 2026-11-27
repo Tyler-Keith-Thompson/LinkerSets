@@ -17,6 +17,7 @@ What you ask for depends on what was marked:
 |---|---|
 | `static let home = Route(path: "/")` | `LinkerSet<Route>` |
 | `static func migrate(_ db: inout Database)` | `LinkerSet<(inout Database) -> Void>` |
+| `@MainActor static func show()`, or a static func of a `@MainActor` type | `LinkerSet<@MainActor () -> Void>`, read on the main actor |
 | `struct Login: AnalyticsEvent`, with `@LinkerSetEntry` | `LinkerSet<Any.Type>` |
 | `struct Login: AnalyticsEvent`, with a macro requiring `AnalyticsEvent` | `LinkerSet<any AnalyticsEvent.Type>` |
 

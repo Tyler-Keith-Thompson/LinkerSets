@@ -22,7 +22,16 @@ where they are written. The messages name the attribute as written, so a client'
 | on `struct Box<T>` | cannot apply to a generic type: a record holds one concrete type |
 | on a static member of `struct Box<T>` | cannot apply to a member of a generic type: a record holds one concrete value |
 | on a protocol's requirement | cannot apply to a protocol's requirement: a record holds a value, and a requirement has none of its own |
+| on `@MainActor static let back`, or a `static var` of a `@MainActor` type | cannot apply to a property isolated to the main actor: a record's accessor is nonisolated and can't read it; mark the property nonisolated, or register a @MainActor function that returns it |
 | inside a function, closure or accessor | applies at file scope or in a type, not inside a function, closure or accessor: a record is a global |
+
+A function isolated to the main actor isn't refused: its record holds it as its isolated type,
+`@MainActor () -> Void`, which code on the main actor reads and calls. A `static let` of a
+`@MainActor` type is recorded too, since a stored `let` of a Sendable type isn't isolated. The
+macros see only a `@MainActor` written on the declaration, its type or its extension. A custom
+global actor's attribute looks like any other attribute, and isolation a type takes from a
+protocol it conforms to isn't in the syntax at all, so a member isolated either way fails to
+compile inside the macro's expansion instead.
 
 A macro that requires a protocol adds one more: a type that doesn't conform fails to compile with
 the compiler's own message, "cannot convert value of type 'NotAnEvent.Type' to type

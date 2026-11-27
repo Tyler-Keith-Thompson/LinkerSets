@@ -30,6 +30,14 @@ import SwiftSyntaxBuilder
 ///   ``requiredConformance(of:)`` names a protocol `P`, which the type must then conform to or the
 ///   expansion doesn't compile, and `Any.Type` otherwise.
 ///
+/// A function isolated to the main actor, by its own `@MainActor` or its type's or extension's,
+/// is stored as its isolated type (`@MainActor () -> Void`), read with
+/// `LinkerSet<@MainActor () -> Void>` and called on the main actor. A property isolated to the
+/// main actor is refused, since the record's nonisolated accessor can't read it: one marked
+/// `@MainActor`, or a `var` of a `@MainActor` type. Only a written `@MainActor` is seen. A custom
+/// global actor's attribute, and isolation a type inherits from a protocol it conforms to, can't
+/// be seen in the syntax, so a member isolated that way fails to compile inside the expansion.
+///
 /// It diagnoses anything else, each with a message of its own: generic functions and types,
 /// members of generic types, instance members, protocol requirements, declarations inside a
 /// function, closure or accessor, and a kind that isn't a 32-bit literal other than 0.
@@ -76,13 +84,17 @@ extension LinkerSetMacro {
         #if canImport(SwiftSyntax600)
         try requireRecordableScope(context.lexicalContext, of: declaration, macroName: macroName)
         let isMember = context.lexicalContext.first?.isTypeScope ?? false
+        // A member takes its type's (or its extension's) global actor unless it says otherwise.
+        let enclosingIsMainActor = context.lexicalContext.first?.asProtocol(WithAttributesSyntax.self)?.attributes.isMainActor ?? false
         #else
         // A macro sees its lexical context from swift-syntax 600 on. Before it, `static` marks a
         // member (a global can't take it), and an instance member, a local declaration and a
         // member of a generic type are left for the compiler to refuse in the expansion.
         let isMember = declaration.asProtocol(WithModifiersSyntax.self)?.modifiers.isStatic ?? false
+        // Nor can it see the enclosing type's attributes: only the declaration's own isolation counts.
+        let enclosingIsMainActor = false
         #endif
-        let value = try value(of: declaration, isMember: isMember, attribute: node, macroName: macroName)
+        let value = try value(of: declaration, isMember: isMember, enclosingIsMainActor: enclosingIsMainActor, attribute: node, macroName: macroName)
         let name = context.makeUniqueName("linkerSetRecord")
         let storage = isMember ? "private static let" : "private let"
         let record: ExprSyntax = "(\(raw: kind.hexadecimalLiteral), 0, { outValue, type, _, _ in LinkerSets.LinkerSetRecord.__store(\(value), into: outValue, ifAsked: type) }, 0, 0)"
@@ -125,9 +137,21 @@ extension LinkerSetMacro {
     /// The expression the record's accessor stores: the variable; the function as a value of its
     /// function type, named with its argument labels so an overload can't be mistaken for it; or
     /// the type's metatype, as the existential of its required protocol.
-    private static func value(of declaration: some DeclSyntaxProtocol, isMember: Bool, attribute: AttributeSyntax, macroName: String) throws -> ExprSyntax {
+    ///
+    /// A record's accessor is a nonisolated C function. A function isolated to the main actor (by
+    /// its own `@MainActor`, or its type's or extension's, unless it is `nonisolated`) is stored as
+    /// its isolated type, `@MainActor () -> Void`, which a nonisolated accessor may hold but not
+    /// call. A property isolated to the main actor can't be read there at all, so it is refused:
+    /// one marked `@MainActor` itself, or a `var` of a `@MainActor` type. A `let` of a
+    /// `@MainActor` type is read as it is, since a stored `let` of a Sendable type is nonisolated.
+    private static func value(of declaration: some DeclSyntaxProtocol, isMember: Bool, enclosingIsMainActor: Bool, attribute: AttributeSyntax, macroName: String) throws -> ExprSyntax {
         if let variable = declaration.as(VariableDeclSyntax.self) {
             try requireStatic(variable.modifiers, of: variable, isMember: isMember, macroName: macroName)
+            let inheritsMainActor = enclosingIsMainActor && !variable.modifiers.isNonisolated
+                && variable.bindingSpecifier.tokenKind == .keyword(.var)
+            if variable.attributes.isMainActor || inheritsMainActor {
+                throw LinkerSetMacroDiagnostic.error(.isolatedProperty, at: variable, macroName: macroName)
+            }
             // The compiler itself refuses a peer macro on a declaration of several variables, so one
             // binding is left: refuse it when it isn't a single name.
             guard let pattern = variable.bindings.first?.pattern.as(IdentifierPatternSyntax.self) else {
@@ -141,7 +165,8 @@ extension LinkerSetMacro {
                 throw LinkerSetMacroDiagnostic.error(.genericFunction, at: function, macroName: macroName)
             }
             let reference: ExprSyntax = isMember ? "Self.\(raw: function.compoundName)" : "\(raw: function.compoundName)"
-            return "\(reference) as \(function.functionType)"
+            let isMainActor = function.attributes.isMainActor || (enclosingIsMainActor && !function.modifiers.isNonisolated)
+            return isMainActor ? "\(reference) as @MainActor \(function.functionType)" : "\(reference) as \(function.functionType)"
         }
         if let type = NominalType(declaration) {
             guard !type.isGeneric else {
@@ -205,6 +230,23 @@ extension DeclModifierListSyntax {
     /// Whether the list holds `static` or `class`.
     fileprivate var isStatic: Bool {
         contains { $0.name.tokenKind == .keyword(.static) || $0.name.tokenKind == .keyword(.class) }
+    }
+
+    /// Whether the list holds `nonisolated`.
+    fileprivate var isNonisolated: Bool {
+        contains { $0.name.tokenKind == .keyword(.nonisolated) }
+    }
+}
+
+extension AttributeListSyntax {
+    /// Whether the list holds `@MainActor`. A custom global actor's attribute can't be told from
+    /// any other attribute by its syntax, so only the main actor's is recognized.
+    fileprivate var isMainActor: Bool {
+        contains { element in
+            guard case .attribute(let attribute) = element else { return false }
+            let name = attribute.attributeName.trimmedDescription
+            return name == "MainActor" || name == "_Concurrency.MainActor"
+        }
     }
 }
 

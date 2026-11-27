@@ -17,6 +17,7 @@ struct LinkerSetMacroDiagnostic: DiagnosticMessage, Error {
         case memberOfGenericType
         case protocolRequirement
         case localDeclaration
+        case isolatedProperty
     }
 
     let reason: Reason
@@ -47,6 +48,8 @@ struct LinkerSetMacroDiagnostic: DiagnosticMessage, Error {
             "'\(macroName)' cannot apply to a protocol's requirement: a record holds a value, and a requirement has none of its own"
         case .localDeclaration:
             "'\(macroName)' applies at file scope or in a type, not inside a function, closure or accessor: a record is a global"
+        case .isolatedProperty:
+            "'\(macroName)' cannot apply to a property isolated to the main actor: a record's accessor is nonisolated and can't read it; mark the property nonisolated, or register a @MainActor function that returns it"
         }
     }
 

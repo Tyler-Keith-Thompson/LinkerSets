@@ -1,5 +1,6 @@
 // The records a type becomes: its metatype, as `any P.Type` for a macro that requires a protocol
-// (the example's `@Event`, which requires AnalyticsEvent) and as `Any.Type` for `@LinkerSetEntry`.
+// (the example's `@Event`, which requires AnalyticsEvent and keys each event by its type's name)
+// and as `Any.Type` for `@LinkerSetEntry`.
 // Each test is self-contained.
 
 import ExampleEventsMacros
@@ -22,6 +23,9 @@ struct TypeExpansionTests {
             private enum __macro_local_15linkerSetRecordfMu_ {
                 #linkerSetRecord(kind: 0x65766E74, storing: Login.self as any (ExampleEvents.AnalyticsEvent).Type)
             }
+
+            @_silgen_name("$linkerset_kind_65766E74_key_Login") @used nonisolated func __macro_local_18linkerSetUniqueKeyfMu_() {
+            }
             """
 
         assertMacroExpansion(
@@ -43,6 +47,9 @@ struct TypeExpansionTests {
 
             private enum __macro_local_15linkerSetRecordfMu_ {
                 #linkerSetRecord(kind: 0x65766E74, storing: Logout.self as any (ExampleEvents.AnalyticsEvent).Type)
+            }
+
+            @_silgen_name("$linkerset_kind_65766E74_key_Logout") @used nonisolated func __macro_local_18linkerSetUniqueKeyfMu_() {
             }
             """
 
@@ -67,6 +74,9 @@ struct TypeExpansionTests {
                 final class Purchase: AnalyticsEvent {}
 
                 #linkerSetRecord(kind: 0x65766E74, storing: Self.Purchase.self as any (ExampleEvents.AnalyticsEvent).Type)
+
+                @_silgen_name("$linkerset_kind_65766E74_key_Purchase") @used nonisolated static func __macro_local_18linkerSetUniqueKeyfMu_() {
+                }
             }
             """
 
@@ -91,6 +101,9 @@ struct TypeExpansionTests {
                 actor Refund: AnalyticsEvent {}
 
                 #linkerSetRecord(kind: 0x65766E74, storing: Self.Refund.self as any (ExampleEvents.AnalyticsEvent).Type)
+
+                @_silgen_name("$linkerset_kind_65766E74_key_Refund") @used nonisolated static func __macro_local_18linkerSetUniqueKeyfMu_() {
+                }
             }
             """
 

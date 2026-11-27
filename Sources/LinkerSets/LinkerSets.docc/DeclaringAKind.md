@@ -39,6 +39,9 @@ only when asked for its own type, so a set of a type your library owns (`Route`,
 holds only your declarations. Read your records as a type of your own, and a clash costs nothing
 but the time to skip the other library's records.
 
+Within a kind, records may share any value. To make two declarations of the same route or event
+name fail to build, give each a unique key: <doc:UniqueKeys>.
+
 ### Writing the kind at each declaration
 
 ``LinkerSetEntry(kind:)`` takes the kind as an integer literal. It has to be a literal because the

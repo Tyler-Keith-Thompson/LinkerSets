@@ -108,6 +108,28 @@ see where its declaration sits, so the type must be declared at file scope.
 A macro that takes its kind as an argument can return ``LinkerSetMacro/kindArgument(of:)`` from
 ``LinkerSetMacro/kind(of:)``.
 
+### Checking keys are unique
+
+A macro can give each declaration a key that no other record of its kind in the same executable
+or library may share, in ``LinkerSetMacro/uniqueKey(of:attribute:)``. The expansion then adds a
+function whose symbol is named for the kind and the key, and a second declaration with the same
+key fails to compile in one module, or to link across modules:
+
+```swift
+public enum EventMacro: LinkerSetMacro {
+    public static func kind(of attribute: AttributeSyntax) -> UInt32 { 0x6576_6E74 }  // "evnt"
+
+    public static func uniqueKey(of declaration: some DeclSyntaxProtocol, attribute: AttributeSyntax) -> String? {
+        declaration.asProtocol(NamedDeclSyntax.self)?.name.text
+    }
+}
+```
+
+A macro whose users write the key returns ``LinkerSetMacro/uniqueKeyArgument(of:)``, which reads a
+`uniqueKey:` string literal. An empty key, and a key on a member of a private type, are refused
+with diagnostics of their own. The check reaches one linked image only; LinkerSets' guide to unique
+keys shows each linker's message and the limits.
+
 ### Declaring the kind once
 
 The plugin returns the kind from ``LinkerSetMacro/kind(of:)`` and the library reads the set by

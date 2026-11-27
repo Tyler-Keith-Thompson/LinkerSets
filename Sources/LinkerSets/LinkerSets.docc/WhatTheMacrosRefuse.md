@@ -24,6 +24,9 @@ where they are written. The messages name the attribute as written, so a client'
 | on a protocol's requirement | cannot apply to a protocol's requirement: a record holds a value, and a requirement has none of its own |
 | on `@MainActor static let back`, or a `static var` of a `@MainActor` type | cannot apply to a property isolated to the main actor: a record's accessor is nonisolated and can't read it; mark the property nonisolated, or register a @MainActor function that returns it |
 | inside a function, closure or accessor | applies at file scope or in a type, not inside a function, closure or accessor: a record is a global |
+| `@LinkerSetEntry(kind: 0x726F_7574, uniqueKey: path)`, or a literal with an interpolation | needs its unique key as a string literal without interpolation, such as 'uniqueKey: "/home"' |
+| `@LinkerSetEntry(kind: 0x726F_7574, uniqueKey: "")` | needs a unique key that isn't empty |
+| a unique key on a member of a `private` or `fileprivate` type or extension | can't check its unique key inside a private or fileprivate type: the symbol that checks it would be local to the file; make the enclosing type internal or wider |
 
 A function isolated to the main actor isn't refused: its record holds it as its isolated type,
 `@MainActor () -> Void`, which code on the main actor reads and calls. A `static let` of a
@@ -37,7 +40,8 @@ A macro that requires a protocol adds one more: a type that doesn't conform fail
 the compiler's own message, "cannot convert value of type 'NotAnEvent.Type' to type
 'any AnalyticsEvent.Type'".
 
-The checks of scope (members of generic types, protocol requirements, local declarations) need
+The checks of scope (members of generic types, protocol requirements, local declarations, a
+unique key in a private type) need
 swift-syntax 600 or later, where a macro can see what surrounds it. With an older swift-syntax the
 compiler still refuses each of these, inside the expanded code, and a registered type must sit at
 file scope.

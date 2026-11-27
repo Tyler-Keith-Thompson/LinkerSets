@@ -45,3 +45,23 @@ final class Plugin {}
 
 @LinkerSetEntry(kind: 0x6366_0100)
 actor Worker {}
+
+// Unique keys, at file scope, in a main-actor type, in a struct and in an extension.
+@LinkerSetEntry(kind: 0x6366_0101, uniqueKey: "home")
+let keyedHome = 1
+
+@MainActor
+enum KeyedScreens {
+    @LinkerSetEntry(kind: 0x6366_0101, uniqueKey: "screens.show")
+    static func show() {}
+}
+
+struct KeyedWorker {
+    @LinkerSetEntry(kind: 0x6366_0101, uniqueKey: "worker.start")
+    static func start() {}
+}
+
+extension Settings {
+    @LinkerSetEntry(kind: 0x6366_0101, uniqueKey: "settings.contrast")
+    static let contrast = 3
+}

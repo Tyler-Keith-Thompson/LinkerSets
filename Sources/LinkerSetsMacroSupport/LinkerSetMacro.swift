@@ -42,7 +42,8 @@ import SwiftSyntaxBuilder
 ///
 /// It diagnoses anything else, each with a message of its own: generic functions and types,
 /// members of generic types, instance members, protocol requirements, declarations inside a
-/// function, closure or accessor, and a kind that isn't a 32-bit literal other than 0.
+/// function, closure or accessor, a kind that isn't a 32-bit literal other than 0, and a unique key
+/// that is empty or sits in a private or fileprivate type.
 ///
 /// Before swift-syntax 600 a macro can't see its lexical context. There a type it registers must
 /// be declared at file scope, and the compiler, not the macro, refuses a local declaration or a
@@ -77,6 +78,28 @@ public protocol LinkerSetMacro: PeerMacro {
     /// ``LinkerSetRecordMacro``'s expansion, and returns its name here. The name must differ from
     /// `linkerSetRecord`: a module that imports both declarations couldn't tell them apart.
     static var recordMacroName: String { get }
+
+    /// A key that no other record of this kind in the same linked image may share, such as an
+    /// event's name, or `nil` for no check.
+    ///
+    /// With a key, the expansion also declares a function whose symbol is named for the kind and
+    /// the key, `$linkerset_kind_65766E74_key_Login`, so two declarations with the same key fail to
+    /// build: in one module the compiler refuses the second definition, and across the modules of
+    /// one executable or library the linker does, naming the symbol and both object files. Letters
+    /// and digits stand as they are in the name; every other UTF-8 byte is `_` and two hex
+    /// digits, so any string other than the empty one encodes.
+    ///
+    /// The check reaches one linked image only: separate shared libraries and code loaded with
+    /// `dlopen` each keep their own symbols, so a client that needs the guarantee across images
+    /// still checks at run time.
+    ///
+    /// - Parameters:
+    ///   - declaration: The declaration the attribute is attached to.
+    ///   - attribute: The attribute being expanded, as written.
+    /// - Returns: The key, or `nil`.
+    /// - Throws: A diagnostic when the declaration or attribute doesn't give a key the macro can
+    ///   use.
+    static func uniqueKey(of declaration: some DeclSyntaxProtocol, attribute: AttributeSyntax) throws -> String?
 }
 
 extension LinkerSetMacro {
@@ -87,6 +110,11 @@ extension LinkerSetMacro {
 
     /// `linkerSetRecord`: LinkerSets' own record macro.
     public static var recordMacroName: String { "linkerSetRecord" }
+
+    /// No key: records of the kind may share any value.
+    public static func uniqueKey(of declaration: some DeclSyntaxProtocol, attribute: AttributeSyntax) throws -> String? {
+        nil
+    }
 
     /// The record that `declaration` becomes, as a peer:
     /// ``recordPeers(of:providingPeersOf:in:)``.
@@ -108,9 +136,11 @@ extension LinkerSetMacro {
     ///   - context: The expansion's context.
     /// - Returns: The record's declaration, a call of ``LinkerSetRecordMacro`` by
     ///   ``recordMacroName`` (`#linkerSetRecord(kind: 0x726F7574, storing: Self.home)`), whose own
-    ///   expansion writes one declaration per object format.
-    /// - Throws: The ``LinkerSetMacroDiagnostic/error`` of a refused kind or declaration, and
-    ///   whatever ``kind(of:)`` or ``requiredConformance(of:)`` throws.
+    ///   expansion writes one declaration per object format, followed, when
+    ///   ``uniqueKey(of:attribute:)`` gives a key, by the function whose symbol checks it.
+    /// - Throws: The ``LinkerSetMacroDiagnostic/error`` of a refused kind, declaration or key, and
+    ///   whatever ``kind(of:)``, ``requiredConformance(of:)`` or ``uniqueKey(of:attribute:)``
+    ///   throws.
     public static func recordPeers(
         of node: AttributeSyntax,
         providingPeersOf declaration: some DeclSyntaxProtocol,
@@ -128,10 +158,30 @@ extension LinkerSetMacro {
         // The record itself is LinkerSets' own macro's expansion, so a client's expansion stays one
         // line however many object formats LinkerSets writes.
         let call: DeclSyntax = "#\(raw: recordMacroName)(kind: \(raw: kind.hexadecimalLiteral), storing: \(value))"
-        guard !site.isMember else { return [call] }
+        let guardPeers = try uniqueKeyPeers(of: declaration, attribute: node, kind: kind, site: site, macroName: macroName, in: context)
+        guard !site.isMember else { return [call] + guardPeers }
         // At file scope the compiler drops the globals a freestanding macro declares inside a peer's
         // expansion, so a global's record is a member of a private enum of its own instead.
-        return ["private enum \(context.makeUniqueName("linkerSetRecord")) { \(call) }"]
+        return ["private enum \(context.makeUniqueName("linkerSetRecord")) { \(call) }"] + guardPeers
+    }
+
+    /// The function whose symbol stands for the declaration's ``uniqueKey(of:attribute:)``, or none
+    /// when it has no key.
+    ///
+    /// The function is internal, not private: a private symbol is local to its object file, and
+    /// the linker never compares local symbols. Internal is hidden from other images, which keeps
+    /// it out of a library's exported symbols. It is `@used` so that nothing strips it before the
+    /// linker sees it, and `nonisolated` so that a main-actor type's member needs no isolation.
+    private static func uniqueKeyPeers(of declaration: some DeclSyntaxProtocol, attribute: AttributeSyntax, kind: UInt32, site: RecordSite, macroName: String, in context: some MacroExpansionContext) throws -> [DeclSyntax] {
+        guard let key = try uniqueKey(of: declaration, attribute: attribute) else { return [] }
+        guard !key.isEmpty else { throw LinkerSetMacroDiagnostic(.emptyUniqueKey, macroName: macroName, at: attribute).error }
+        guard !site.isInPrivateScope else {
+            throw LinkerSetMacroDiagnostic(.uniqueKeyInPrivateScope, macroName: macroName, at: declaration).error
+        }
+        let symbol = "$linkerset_kind_" + String(kind.hexadecimalLiteral.dropFirst(2)) + "_key_" + key.symbolEncoded
+        let name = context.makeUniqueName("linkerSetUniqueKey")
+        let staticKeyword = site.isMember ? "static " : ""
+        return ["@_silgen_name(\(literal: symbol)) @used nonisolated \(raw: staticKeyword)func \(name)() {}"]
     }
 
     /// Why `declaration` can't hold a record, or `nil` when it can: the checks
@@ -238,12 +288,16 @@ private struct RecordSite {
     let enclosingIsMainActor: Bool
     /// Why no record can be declared here, or `nil`.
     let scopeRefusal: LinkerSetMacroDiagnostic.Reason?
+    /// Whether an enclosing type or extension is marked `private` or `fileprivate`, which makes
+    /// every member's symbol local to its object file.
+    let isInPrivateScope: Bool
 
     init(_ declaration: some DeclSyntaxProtocol, in context: some MacroExpansionContext) {
         #if canImport(SwiftSyntax600)
         let lexicalContext = context.lexicalContext  // innermost scope first
         isMember = lexicalContext.first?.isTypeScope ?? false
         enclosingIsMainActor = lexicalContext.first?.asProtocol(WithAttributesSyntax.self)?.attributes.isMainActor ?? false
+        isInPrivateScope = lexicalContext.contains { $0.asProtocol(WithModifiersSyntax.self)?.modifiers.isPrivate == true }
         // A record is a global, and a local has no address until its scope runs; a requirement
         // has no value of its own; a record holds one concrete value, not one per specialization.
         if lexicalContext.contains(where: { !$0.isTypeScope }) {
@@ -259,11 +313,31 @@ private struct RecordSite {
         // A macro sees its lexical context from swift-syntax 600 on. Before it, `static` marks a
         // member (a global can't take it), the enclosing type's isolation can't be seen, and a
         // local declaration or a member of a generic type is left for the compiler to refuse in
-        // the expansion.
+        // the expansion. A private enclosing type can't be seen either, so a unique key's check
+        // there goes unwritten without a word.
         isMember = declaration.asProtocol(WithModifiersSyntax.self)?.modifiers.isStatic ?? false
         enclosingIsMainActor = false
+        isInPrivateScope = false
         scopeRefusal = nil
         #endif
+    }
+}
+
+extension String {
+    /// The string as the tail of a symbol's name: ASCII letters and digits as they are, and every
+    /// other UTF-8 byte, `_` included, as `_` and two uppercase hex digits, so `order.placed` is
+    /// `order_2Eplaced`. Every string has one encoding and no two share it, and the result is a
+    /// valid symbol name in every object format.
+    fileprivate var symbolEncoded: String {
+        utf8.map { byte in
+            switch byte {
+            case UInt8(ascii: "a")...UInt8(ascii: "z"), UInt8(ascii: "A")...UInt8(ascii: "Z"), UInt8(ascii: "0")...UInt8(ascii: "9"):
+                String(UnicodeScalar(byte))
+            default:
+                "_" + (byte < 0x10 ? "0" : "") + String(byte, radix: 16, uppercase: true)
+            }
+        }
+        .joined()
     }
 }
 
@@ -311,6 +385,11 @@ extension DeclModifierListSyntax {
     /// Whether the list holds `static` or `class`.
     fileprivate var isStatic: Bool {
         contains { $0.name.tokenKind == .keyword(.static) || $0.name.tokenKind == .keyword(.class) }
+    }
+
+    /// Whether the list holds `private` or `fileprivate`.
+    fileprivate var isPrivate: Bool {
+        contains { ($0.name.tokenKind == .keyword(.private) || $0.name.tokenKind == .keyword(.fileprivate)) && $0.detail == nil }
     }
 
     /// Whether the list holds `nonisolated`.

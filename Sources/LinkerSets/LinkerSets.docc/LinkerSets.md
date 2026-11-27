@@ -35,6 +35,7 @@ how.
 - <doc:DeclaringAKind>
 - <doc:FindingRecords>
 - <doc:WhatTheMacrosRefuse>
+- <doc:UniqueKeys>
 - <doc:ReplacingARegistry>
 - <doc:PlatformsAndLinking>
 - <doc:Performance>
@@ -42,6 +43,7 @@ how.
 ### Declaring records
 
 - ``LinkerSetEntry(kind:)``
+- ``LinkerSetEntry(kind:uniqueKey:)``
 
 ### Finding records
 

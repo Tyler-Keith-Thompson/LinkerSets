@@ -36,6 +36,13 @@ public struct LinkerSetMacroDiagnostic: DiagnosticMessage {
         case isolatedProperty
         /// `#linkerSetRecord` was called without the `storing:` expression its record holds.
         case missingValue
+        /// The macro's ``LinkerSetMacro/uniqueKey(of:attribute:)`` gave an empty key.
+        case emptyUniqueKey
+        /// The `uniqueKey:` argument isn't a string literal, or holds an interpolation.
+        case uniqueKeyNotLiteral
+        /// The declaration has a unique key but sits in a private or fileprivate type, where the
+        /// symbol that checks the key would be local to its file and never compared.
+        case uniqueKeyInPrivateScope
     }
 
     /// Why the declaration or kind is refused.
@@ -85,6 +92,12 @@ public struct LinkerSetMacroDiagnostic: DiagnosticMessage {
             "'\(macroName)' cannot apply to a property isolated to the main actor: a record's accessor is nonisolated and can't read it; mark the property nonisolated, or register a @MainActor function that returns it"
         case .missingValue:
             "'\(macroName)' needs a 'storing:' expression: the value its record holds"
+        case .emptyUniqueKey:
+            "'\(macroName)' needs a unique key that isn't empty"
+        case .uniqueKeyNotLiteral:
+            "'\(macroName)' needs its unique key as a string literal without interpolation, such as 'uniqueKey: \"/home\"'"
+        case .uniqueKeyInPrivateScope:
+            "'\(macroName)' can't check its unique key inside a private or fileprivate type: the symbol that checks it would be local to the file; make the enclosing type internal or wider"
         }
     }
 

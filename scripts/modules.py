@@ -118,7 +118,7 @@ MODULES = [
     # Discovery
     ("LinkerSets", "Discovery", "@LinkerSetEntry, which turns a declaration into a record, with LinkerSetsRuntime re-exported to read them.", ["LinkerSetsRuntime", "LinkerSetsMacros"]),
     ("LinkerSetsRuntime", "Discovery", "LinkerSet, LinkerSetRecord and LinkerSetKind: the records of one kind found at run time, with no macro or swift-syntax dependency.", []),
-    ("LinkerSetsMacroSupport", "Discovery", "LinkerSetMacro: the expansion every linker-set macro shares, for the macro plugins of clients that declare their own kind.", ["swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxBuilder", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftDiagnostics"]),
+    ("LinkerSetsMacroSupport", "Discovery", "LinkerSetMacro: the expansion every linker-set macro shares, for the macro plugins of clients that declare their own kind.", ["swift-syntax/SwiftSyntax", "swift-syntax/SwiftParser", "swift-syntax/SwiftSyntaxBuilder", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftDiagnostics"]),
     # Examples
     ("ExampleRoutes", "Examples", "A client of LinkerSets: the routes kind and its @Route macro, with routes declared by it.", ["LinkerSets", "ExampleRoutesKind", "ExampleRoutesMacros"]),
     ("ExampleRoutesKind", "Examples", "The routes kind as a number, which ExampleRoutes and its plugin both import.", []),
@@ -275,7 +275,7 @@ TEST_TARGETS = [
     # Links ExampleDynamicPlugins at launch (under Bazel) and opens ExampleLoadedPlugins with dlopen
     # (LINKED_SHARED_LIBRARIES, LOADED_SHARED_LIBRARIES), so depends on neither.
     ("LinkerSetsDynamicTests", [PROJECT]),
-    ("LinkerSetsMacrosTests", ["LinkerSetsMacros", "ExampleRoutesMacros", "ExampleEventsMacros", "ExampleDiscoveryMacros", "LinkerSetsMacroSupport", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
+    ("LinkerSetsMacrosTests", ["LinkerSetsMacros", TEST_SUPPORT, "swift-property-based/PropertyBased", "ExampleRoutesMacros", "ExampleEventsMacros", "ExampleDiscoveryMacros", "LinkerSetsMacroSupport", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxBuilder", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
 ]
 
 # The modules the test-support target depends on (fixtures are usually written against the

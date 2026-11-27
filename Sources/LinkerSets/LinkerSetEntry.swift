@@ -31,6 +31,31 @@
 @attached(peer)
 public macro LinkerSetEntry(kind: UInt32) = #externalMacro(module: "LinkerSetsMacros", type: "LinkerSetEntryMacro")
 
+/// Declares a record of `kind` whose value is this declaration's, and that no other record of
+/// `kind` in the same executable or library may share `uniqueKey` with.
+///
+/// The record is the one ``LinkerSetEntry(kind:)`` writes. Beside it the macro declares a function
+/// whose symbol is named for the kind and the key, so a second declaration with the same key fails
+/// to build: in one module the compiler refuses it, and across modules the linker reports a
+/// duplicate symbol, `$linkerset_kind_726F7574_key__2Fhome`, naming both object files:
+///
+/// ```swift
+/// enum Routes {
+///     @LinkerSetEntry(kind: 0x726F_7574, uniqueKey: "/home")
+///     static let home = Route(path: "/home")
+/// }
+/// ```
+///
+/// The check covers one linked image. Shared libraries and code loaded with `dlopen` keep their
+/// symbols apart, so a key repeated in another image goes unreported:
+/// <doc:UniqueKeys> says where it holds on each platform.
+///
+/// - Parameters:
+///   - kind: The kind the record is tagged with, as an integer literal.
+///   - uniqueKey: The key, as a string literal that isn't empty and holds no interpolation.
+@attached(peer)
+public macro LinkerSetEntry(kind: UInt32, uniqueKey: String) = #externalMacro(module: "LinkerSetsMacros", type: "LinkerSetEntryMacro")
+
 /// Declares a record of `kind` whose accessor stores `value`: what every linker-set macro's
 /// expansion calls.
 ///

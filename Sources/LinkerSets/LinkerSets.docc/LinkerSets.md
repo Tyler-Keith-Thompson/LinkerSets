@@ -30,6 +30,14 @@ how.
 
 ## Topics
 
+### Guides
+
+- <doc:DeclaringAKind>
+- <doc:FindingRecords>
+- <doc:WhatTheMacrosRefuse>
+- <doc:ReplacingARegistry>
+- <doc:PlatformsAndLinking>
+
 ### Declaring records
 
 - ``LinkerSetEntry(kind:)``

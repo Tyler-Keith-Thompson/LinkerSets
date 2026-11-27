@@ -1,0 +1,36 @@
+# What the macros refuse
+
+Every declaration a record can't describe is a compile error, with a message that says why.
+
+## Overview
+
+A record is a global constant written at compile time: a kind, and a function that hands back one
+concrete value. Anything that would need a value only known at run time, or more than one value,
+can't be recorded. `@LinkerSetEntry` and every macro built on LinkerSetsMacroSupport refuse these
+where they are written. The messages name the attribute as written, so a client's `@Route` reports
+`'@Route' applies to static members only`.
+
+| Written | Message |
+|---|---|
+| `@LinkerSetEntry(kind: routesKind)` | needs its kind as an integer literal, such as 'kind: 0x726F_7574' |
+| `@LinkerSetEntry(kind: 0x1_0000_0000)` | kind must fit in 32 bits |
+| `@LinkerSetEntry(kind: 0)` | kind 0 is reserved for empty slots |
+| on an initializer, a subscript or a typealias | applies to a static property, a static function, a global variable, a free function, or a struct, enum, class or actor |
+| on an instance property or method | applies to static members only: a record has no instance to read |
+| on `static let (a, b) = (1, 2)` | applies to a variable with a name, not a tuple pattern |
+| on `func make<T>() -> T` | cannot apply to a generic function: a record holds one concrete value |
+| on `struct Box<T>` | cannot apply to a generic type: a record holds one concrete type |
+| on a static member of `struct Box<T>` | cannot apply to a member of a generic type: a record holds one concrete value |
+| on a protocol's requirement | cannot apply to a protocol's requirement: a record holds a value, and a requirement has none of its own |
+| inside a function, closure or accessor | applies at file scope or in a type, not inside a function, closure or accessor: a record is a global |
+
+A macro that requires a protocol adds one more: a type that doesn't conform fails to compile with
+the compiler's own message, "cannot convert value of type 'NotAnEvent.Type' to type
+'any AnalyticsEvent.Type'".
+
+The checks of scope (members of generic types, protocol requirements, local declarations) need
+swift-syntax 600 or later, where a macro can see what surrounds it. With an older swift-syntax the
+compiler still refuses each of these, inside the expanded code, and a registered type must sit at
+file scope.
+
+Each of these is pinned by a test that must fail to compile, in `Tests/CompileFailures`.

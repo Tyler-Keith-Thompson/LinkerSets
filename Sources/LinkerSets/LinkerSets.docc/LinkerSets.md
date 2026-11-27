@@ -37,6 +37,7 @@ how.
 - <doc:WhatTheMacrosRefuse>
 - <doc:ReplacingARegistry>
 - <doc:PlatformsAndLinking>
+- <doc:Performance>
 
 ### Declaring records
 

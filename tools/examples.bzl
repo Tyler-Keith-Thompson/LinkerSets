@@ -14,4 +14,5 @@ EXAMPLE_PACKAGES = [
     "Sources/ExampleLoadedPlugins",
     "Sources/ExampleCatalog",
     "Sources/ExampleRoutesKind",
+    "Sources/ExampleManyRecords",
 ]

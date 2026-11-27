@@ -90,6 +90,10 @@ wasi-test *args="":
 android-test *args="":
     python3 -u {{PROJECT_ROOT}}/scripts/android_test.py {{args}}
 
+[doc('What records cost: build time of N @LinkerSetEntry uses against a macro-free control, and reading N records in release, e.g. just benchmark --sizes 100,1000')]
+benchmark *args="":
+    python3 -u {{PROJECT_ROOT}}/scripts/benchmark.py {{args}}
+
 [doc('xcodebuild the package for watchOS devices (arm64_32) and test it on the tvOS, watchOS and visionOS simulators and Mac Catalyst, e.g. just apple-test --platforms tvOS,watchOS')]
 apple-test *args="":
     python3 -u {{PROJECT_ROOT}}/scripts/apple_test.py {{args}}

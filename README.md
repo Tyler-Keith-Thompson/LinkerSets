@@ -134,6 +134,15 @@ launch (nothing runs until you ask). This technique is called a *linker set*. Fr
 uses it to find drivers, and Swift Testing uses one to find tests. LinkerSets' records have the
 same layout as Swift Testing's, but the library doesn't depend on it.
 
+## In a large app
+
+Records cost nothing at launch. Reading a set is one pass over the records, linear in how many
+there are, so an app with thousands of events, routes or plug-ins reads them all in a few
+milliseconds. Read each set once at startup and keep the array. Each marked declaration adds a
+few milliseconds to a debug build. The
+[Performance](https://tyler-keith-thompson.github.io/LinkerSets/documentation/linkersets/performance)
+guide has the measurements and `just benchmark` repeats them.
+
 ## Platforms
 
 | Platform | Status |

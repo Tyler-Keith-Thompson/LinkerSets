@@ -1,0 +1,8 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+# Writes many @LinkerSetEntry records from a spec file; see many_records.sh.
+sh_binary(
+    name = "many_records",
+    srcs = ["many_records.sh"],
+    visibility = ["//visibility:public"],
+)

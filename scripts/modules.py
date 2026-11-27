@@ -127,6 +127,7 @@ MODULES = [
     ("ExampleEvents", "Examples", "A client of LinkerSets that registers types: the events kind, the AnalyticsEvent protocol its @Event macro requires, and events declared by it.", ["LinkerSets", "ExampleEventsMacros"]),
     ("ExampleDynamicPlugins", "Examples", "Records in a shared library the test program links at launch, an image of its own.", ["LinkerSets"]),
     ("ExampleCatalog", "Examples", "A module that only reads records, of ExamplePlugins' and ExampleMigrations' kinds, depending on LinkerSetsRuntime alone.", ["LinkerSetsRuntime"]),
+    ("ExampleManyRecords", "Examples", "3,300 generated records of two kinds, for the tests of how reading scales.", ["LinkerSets"]),
     ("ExampleLoadedPlugins", "Examples", "Records in a shared library the test program opens with dlopen, in the process only once loaded.", ["LinkerSets"]),
 ]
 
@@ -143,7 +144,7 @@ IOS_MINIMUM = "18.0"
 # so neither they nor their dependencies ship in `import LinkerSets`. Only executables, test
 # targets and other example modules may depend on one. A compiler plugin (MACROS) an example module
 # uses is listed here too: plugins ship nothing anyway, and the listing lets only examples use it.
-EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros", "ExampleDynamicPlugins", "ExampleLoadedPlugins", "ExampleCatalog", "ExampleRoutesKind"]
+EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros", "ExampleDynamicPlugins", "ExampleLoadedPlugins", "ExampleCatalog", "ExampleRoutesKind", "ExampleManyRecords"]
 
 # Example modules also built as shared libraries, by name from EXAMPLE_MODULES: fixtures for tests
 # of code that sits in an image of its own, a library the program links at launch or opens with
@@ -218,7 +219,7 @@ RESOURCES = {}
 # arguments; with no output names it writes the one source to standard output, with them it gets
 # the outputs' paths first, before a `--`.
 # {"Greetings": [("Phrases", "//tools/phrases", ["//Sources/Greetings:phrases.txt"], [])]}
-GENERATED_SOURCES = {}
+GENERATED_SOURCES = {"ExampleManyRecords": [("Records", "//tools/many_records", ["//Sources/ExampleManyRecords:records.txt"], [f"Records{index}" for index in range(10)])]}
 
 # Compiler plugins holding macros: (name, group, description, dependencies), whose dependencies
 # are packages' products (swift-syntax's) and modules from MODULES: a library holding expansions
@@ -265,7 +266,7 @@ EXECUTABLES = [
 # Test targets. SwiftPM rejects a target with no sources, so list a target only once its directory
 # holds tests. (name, dependencies)
 TEST_TARGETS = [
-    (f"{PROJECT}Tests", [PROJECT, "LinkerSetsRuntime", "ExampleCatalog", "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
+    (f"{PROJECT}Tests", [PROJECT, "LinkerSetsRuntime", "ExampleCatalog", "ExampleManyRecords", "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
     # Links ExampleDynamicPlugins at launch (under Bazel) and opens ExampleLoadedPlugins with dlopen
     # (LINKED_SHARED_LIBRARIES, LOADED_SHARED_LIBRARIES), so depends on neither.
     ("LinkerSetsDynamicTests", [PROJECT]),

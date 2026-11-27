@@ -14,31 +14,28 @@ import Testing
 struct LinkingTests {
     @Test("Routes, declared as static properties in ExampleRoutes, are found")
     func routesModule() {
-        let sut = LinkerSet<Endpoint>(kind: .routes)
         let expected = ["/", "/settings"]
 
-        let actual = sut.values.map(\.path).sorted()
+        let actual = Endpoints.all.map(\.path).sorted()
 
         #expect(actual == expected)
     }
 
     @Test("Migrations, declared as static and free functions in ExampleMigrations, are found")
     func migrationsModule() {
-        let sut = LinkerSet<(inout [String]) -> Void>(kind: .migrations)
         let expected = ["audit", "sessions", "users"]
         var tables: [String] = []
 
-        for migration in sut.values { migration(&tables) }
+        for migration in Migrations.all { migration(&tables) }
 
         #expect(tables.sorted() == expected)
     }
 
     @Test("Events, declared as types in ExampleEvents, are found")
     func eventsModule() {
-        let sut = LinkerSet<any AnalyticsEvent.Type>(kind: .events)
         let expected = ["login", "logout", "purchase", "refund"]
 
-        let actual = sut.values.map { $0.name }.sorted()
+        let actual = AnalyticsEvents.all.map { $0.name }.sorted()
 
         #expect(actual == expected)
     }

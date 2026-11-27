@@ -25,29 +25,51 @@ public enum RouteMacro: LinkerSetMacro {
 }
 ```
 
-The client's library declares the macro and the same kind for reading. It re-exports LinkerSets,
-because the expansion names LinkerSets' types in its users' files:
+The client's library declares the macro, the same kind, and the read of the set. It re-exports
+LinkerSets, because the expansion names LinkerSets' types in its users' files:
 
 ```swift
 @_exported import LinkerSets
 
 extension LinkerSetKind {
-    public static let routes = LinkerSetKind(rawValue: 0x726F_7574)
+    static let routes = LinkerSetKind(rawValue: 0x726F_7574)  // "rout"
 }
 
 @attached(peer)
 public macro Route() = #externalMacro(module: "RoutesMacros", type: "RouteMacro")
+
+extension Endpoints {
+    public static var all: [Endpoint] {
+        LinkerSet<Endpoint>(kind: .routes).values
+    }
+}
 ```
 
-Its users then register and find routes:
+Its users then register routes and read them through the library:
 
 ```swift
 enum Endpoints {
     @Route static let home = Endpoint(path: "/")
 }
 
-let endpoints = LinkerSet<Endpoint>(kind: .routes).values
+let endpoints = Endpoints.all
 ```
+
+### What the re-export exposes
+
+The expansion is written into each user's file and names `LinkerSets.LinkerSetRecord` there, so
+that file has to see the LinkerSets module. With `@_exported import LinkerSets` in the client's
+library, importing the client is enough. With a plain or `public import`, every user's file fails
+to compile with "cannot find 'LinkerSets' in scope" until it imports LinkerSets itself. The
+compile tests in `Tests/CompileFailures` (`ExportingClientUser`, `ImportingClientUser` and
+`ImportingClientUserImportingLinkerSets`) check each case.
+
+So every file that imports the client also sees `LinkerSet`, `LinkerSetKind` and anything
+public the client adds to them. A kind constant doesn't need to be public: the macro writes the
+kind as a number, so users' files never name the constant. Keep it internal and give users the
+values through the client's own API, as `Endpoints.all` does above. A user can still read the set
+by its number, `LinkerSetKind(rawValue: 0x726F_7574)`; an internal constant only keeps it out of
+autocomplete and out of the client's public API.
 
 ``LinkerSetMacro`` writes the same record `@LinkerSetEntry` writes, in the same section, and its
 diagnostics name the client's attribute (`'@Route' applies to static members only`). Each kind

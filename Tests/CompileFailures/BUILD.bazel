@@ -2,6 +2,7 @@
 # that compiles (tools/compile_failure_test.bzl). Hand-written: no Package.swift target holds them.
 
 load("//tools:compile_failure_test.bzl", "swift_compile_failure_test")
+load("//tools:swift_rules.bzl", "swift_library")
 
 swift_compile_failure_test(
     name = "GenericFunction",
@@ -187,4 +188,67 @@ swift_compile_failure_test(
     plugin_module_name = "LinkerSetsMacros",
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
+)
+
+# Whether a client library must re-export LinkerSets: two clients of the example @Route plugin, one
+# re-exporting it and one importing it, and their users' files.
+swift_library(
+    name = "ExportingClient",
+    testonly = True,
+    srcs = ["ExportingClient/Probe.swift"],
+    module_name = "ExportingClient",
+    plugins = ["//Sources/ExampleRoutesMacros"],
+    deps = ["//Sources/LinkerSets"],
+)
+
+swift_library(
+    name = "ImportingClient",
+    testonly = True,
+    srcs = ["ImportingClient/Probe.swift"],
+    module_name = "ImportingClient",
+    plugins = ["//Sources/ExampleRoutesMacros"],
+    deps = ["//Sources/LinkerSets"],
+)
+
+swift_compile_failure_test(
+    name = "ExportingClientUser",
+    size = "small",
+    src = "ExportingClientUser.swift",
+    plugin = "//Sources/ExampleRoutesMacros",
+    plugin_module_name = "ExampleRoutesMacros",
+    tags = ["debug-only"],
+    deps = [":ExportingClient"],
+)
+
+swift_compile_failure_test(
+    name = "ExportingClientUserReadingKind",
+    size = "small",
+    src = "ExportingClientUserReadingKind.swift",
+    expected_errors = ["error: 'probes' is inaccessible due to 'internal' protection level"],
+    tags = ["debug-only"],
+    deps = [":ExportingClient"],
+)
+
+swift_compile_failure_test(
+    name = "ImportingClientUser",
+    size = "small",
+    src = "ImportingClientUser.swift",
+    expected_errors = [
+        "error: cannot find type 'LinkerSets' in scope",
+        "error: cannot find 'LinkerSets' in scope",
+    ],
+    plugin = "//Sources/ExampleRoutesMacros",
+    plugin_module_name = "ExampleRoutesMacros",
+    tags = ["debug-only"],
+    deps = [":ImportingClient"],
+)
+
+swift_compile_failure_test(
+    name = "ImportingClientUserImportingLinkerSets",
+    size = "small",
+    src = "ImportingClientUserImportingLinkerSets.swift",
+    plugin = "//Sources/ExampleRoutesMacros",
+    plugin_module_name = "ExampleRoutesMacros",
+    tags = ["debug-only"],
+    deps = [":ImportingClient"],
 )

@@ -4,8 +4,16 @@
 // plugin (ExampleEventsMacros) requires that protocol, so the set reads as `any AnalyticsEvent.Type`.
 
 extension LinkerSetKind {
-    /// Records of analytics event types, `"evnt"`.
-    public static let events = LinkerSetKind(rawValue: 0x6576_6E74)
+    /// Records of analytics event types, `"evnt"`. Internal, like ExampleRoutes' kind.
+    static let events = LinkerSetKind(rawValue: 0x6576_6E74)
+}
+
+/// The example app's event types.
+public enum AnalyticsEvents {
+    /// Every event type the program declares, in the order ``LinkerSet/values`` gives them.
+    public static var all: [any AnalyticsEvent.Type] {
+        LinkerSet<any AnalyticsEvent.Type>(kind: .events).values
+    }
 }
 
 /// An analytics event the example app can send.

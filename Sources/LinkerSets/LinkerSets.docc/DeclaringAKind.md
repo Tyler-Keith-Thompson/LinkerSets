@@ -24,9 +24,12 @@ Give the kind a name for the code that reads it:
 
 ```swift
 extension LinkerSetKind {
-    public static let routes = LinkerSetKind(rawValue: 0x726F_7574)  // "rout"
+    static let routes = LinkerSetKind(rawValue: 0x726F_7574)  // "rout"
 }
 ```
+
+A library that reads the set for its users keeps the name internal: the macro writes the kind as a
+number, so its users' files never need it.
 
 ### When two libraries pick the same number
 

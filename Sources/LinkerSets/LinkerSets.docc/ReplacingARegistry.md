@@ -41,18 +41,33 @@ public enum EventMacro: LinkerSetMacro {
 }
 ```
 
-The library declares the macro and the kind, and re-exports LinkerSets for the expansion:
+The library declares the macro and the kind, re-exports LinkerSets for the expansion, and reads
+the set for its users:
 
 ```swift
 @_exported import LinkerSets
 
 extension LinkerSetKind {
-    public static let events = LinkerSetKind(rawValue: 0x6576_6E74)
+    static let events = LinkerSetKind(rawValue: 0x6576_6E74)  // "evnt"
 }
 
 @attached(peer)
 public macro Event() = #externalMacro(module: "AnalyticsMacros", type: "EventMacro")
+
+public enum AnalyticsEvents {
+    public static var all: [any AnalyticsEvent.Type] {
+        LinkerSet<any AnalyticsEvent.Type>(kind: .events).values
+    }
+}
 ```
+
+The re-export is required. The expansion lands in each user's file and names
+`LinkerSets.LinkerSetRecord` there, so that file must see the LinkerSets module. A library that
+imports LinkerSets without re-exporting it leaves its users' files failing with "cannot find
+'LinkerSets' in scope" unless each one imports LinkerSets too. The re-export also puts
+``LinkerSet`` and ``LinkerSetKind`` in scope wherever the library is imported. Keep the kind
+internal and hand users the values through the library's own API (`AnalyticsEvents.all`), so the
+set is read in one place.
 
 The LinkerSetsMacroSupport module's documentation has the package targets this needs.
 
@@ -61,7 +76,7 @@ The LinkerSetsMacroSupport module's documentation has the package targets this n
 Before touching any event, read both and compare them, in a test or a debug build:
 
 ```swift
-let discovered = LinkerSet<any AnalyticsEvent.Type>(kind: .events).values
+let discovered = AnalyticsEvents.all
 let missing = allEvents.filter { listed in !discovered.contains { $0 == listed } }
 ```
 

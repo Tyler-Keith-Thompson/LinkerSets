@@ -41,8 +41,11 @@ PACKAGES = [
     ("swift-property-based", "https://github.com/x-sheep/swift-property-based", "2.0.1"),
     # Tests only: seeded generators and draws that reproduce on every platform.
     ("swiftprng", "https://github.com/Tyler-Keith-Thompson/SwiftPRNG", "0.0.1"),
-    # The macros' compiler plugin: syntax trees, expansion and its test support.
-    ("swift-syntax", "https://github.com/swiftlang/swift-syntax", "range:603.0.0..<605.0.0"),
+    # The macros' compiler plugin: syntax trees, expansion and its test support. Every major release
+    # from 509 (the first with macros) up to the next one not yet released, so adopters on any of
+    # them can resolve LinkerSets beside their other macro packages; the plugin covers the API
+    # differences with `#if canImport(SwiftSyntax<major>)`. Widen the upper bound when a major ships.
+    ("swift-syntax", "https://github.com/swiftlang/swift-syntax", "range:509.0.0..<605.0.0"),
     # Mocks generated from protocols (`@Mockable`). Uncomment when a module first needs one; see
     # MOCKING below.
     # ("mockable", "https://github.com/Kolos65/Mockable", "0.6.4"),

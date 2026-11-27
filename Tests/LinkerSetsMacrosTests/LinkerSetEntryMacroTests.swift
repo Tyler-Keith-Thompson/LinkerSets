@@ -8,6 +8,10 @@ import Testing
 
 @Suite("@LinkerSetEntry: expansions")
 struct LinkerSetEntryMacroTests {
+    // swift-syntax 600 and 601's assertMacroExpansion leaves an `#if` among a peer's attributes
+    // out of the expansion it reports, though the plugin writes it and the compiler compiles it
+    // (LinkerSetsTests finds the records on those versions), so these pin the source from 602 on.
+    #if canImport(SwiftSyntax602)
     @Test("A static property becomes a private static record that stores Self.property")
     func staticProperty() {
         let source = """
@@ -166,6 +170,7 @@ struct LinkerSetEntryMacroTests {
             failureHandler: { Issue.record("\($0.message)") }
         )
     }
+    #endif
 
     @Test("Each refused declaration gets its diagnostic, where it applies, and no record", arguments: [
         ("@LinkerSetEntry(kind: routes)\nlet a = 1", "'@LinkerSetEntry' needs its kind as an integer literal, such as 'kind: 0x726F_7574'", 1, 1, "let a = 1"),

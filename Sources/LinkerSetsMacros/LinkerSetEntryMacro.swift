@@ -15,10 +15,17 @@ public struct LinkerSetEntryMacro: PeerMacro {
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         let kind = try kindLiteral(of: node)
+        #if canImport(SwiftSyntax600)
         let isMember = context.lexicalContext.first?.isTypeScope ?? false
+        #else
+        // A macro sees its lexical context from swift-syntax 600 on. Before it, `static` marks a
+        // member (a global can't take it), and an instance member is left for the compiler to
+        // refuse in the expansion.
+        let isMember = declaration.asProtocol(WithModifiersSyntax.self)?.modifiers.isStatic ?? false
+        #endif
         let value = try value(of: declaration, isMember: isMember)
         let name = context.makeUniqueName("linkerSetRecord")
-        let storage: TokenSyntax = isMember ? "private static let" : "private let"
+        let storage = isMember ? "private static let" : "private let"
         return [
             """
             #if objectFormat(MachO)
@@ -26,7 +33,7 @@ public struct LinkerSetEntryMacro: PeerMacro {
             #elseif objectFormat(ELF)
             @section("linker_sets")
             #endif
-            @used \(storage) \(name): LinkerSets.LinkerSetRecord.Literal = (\(kind), 0, { outValue, type, _, _ in LinkerSets.LinkerSetRecord.__store(\(value), into: outValue, ifAsked: type) }, 0, 0)
+            @used \(raw: storage) \(name): LinkerSets.LinkerSetRecord.Literal = (\(kind), 0, { outValue, type, _, _ in LinkerSets.LinkerSetRecord.__store(\(value), into: outValue, ifAsked: type) }, 0, 0)
             """,
         ]
     }
@@ -71,7 +78,7 @@ public struct LinkerSetEntryMacro: PeerMacro {
 
     private static func requireStatic(_ modifiers: DeclModifierListSyntax, of declaration: some SyntaxProtocol, isMember: Bool) throws {
         guard isMember else { return }
-        guard modifiers.contains(where: { $0.name.tokenKind == .keyword(.static) || $0.name.tokenKind == .keyword(.class) }) else {
+        guard modifiers.isStatic else {
             throw DiagnosticsError(diagnostics: [Diagnostic(node: Syntax(declaration), message: LinkerSetEntryDiagnostic.instanceMember)])
         }
     }
@@ -82,6 +89,13 @@ extension Syntax {
     fileprivate var isTypeScope: Bool {
         `is`(StructDeclSyntax.self) || `is`(EnumDeclSyntax.self) || `is`(ClassDeclSyntax.self)
             || `is`(ActorDeclSyntax.self) || `is`(ExtensionDeclSyntax.self) || `is`(ProtocolDeclSyntax.self)
+    }
+}
+
+extension DeclModifierListSyntax {
+    /// Whether the list holds `static` or `class`.
+    fileprivate var isStatic: Bool {
+        contains { $0.name.tokenKind == .keyword(.static) || $0.name.tokenKind == .keyword(.class) }
     }
 }
 
@@ -111,7 +125,13 @@ extension FunctionDeclSyntax {
         let parameters = signature.parameterClause.parameters
             .map { $0.type.trimmedDescription + ($0.ellipsis == nil ? "" : "...") }
             .joined(separator: ", ")
-        let effects = [signature.effectSpecifiers?.asyncSpecifier?.text, signature.effectSpecifiers?.throwsClause?.trimmedDescription]
+        #if canImport(SwiftSyntax600)
+        // Typed throws, `throws(E)`, arrived with swift-syntax 600's throws clause.
+        let throwing = signature.effectSpecifiers?.throwsClause?.trimmedDescription
+        #else
+        let throwing = signature.effectSpecifiers?.throwsSpecifier?.text
+        #endif
+        let effects = [signature.effectSpecifiers?.asyncSpecifier?.text, throwing]
             .compactMap { $0 }
             .map { $0 + " " }
             .joined()

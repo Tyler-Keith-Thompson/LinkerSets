@@ -65,3 +65,31 @@ extension Settings {
     @LinkerSetEntry(kind: 0x6366_0101, uniqueKey: "settings.contrast")
     static let contrast = 3
 }
+
+// Static members of an actor, a class, a type nested in a class and a class's extension, whose
+// records name the type rather than the covariant `Self`.
+actor Dispatcher {
+    @LinkerSetEntry(kind: 0x6366_0101, uniqueKey: "dispatcher.start")
+    static func start() {}
+
+    @LinkerSetEntry(kind: 0x6366_0100)
+    static let name = "worker"
+}
+
+class Scheduler {
+    @LinkerSetEntry(kind: 0x6366_0100)
+    static func start() {}
+
+    @LinkerSetEntry(kind: 0x6366_0100)
+    static let interval = 5
+
+    enum Jobs {
+        @LinkerSetEntry(kind: 0x6366_0100)
+        static func clean() {}
+    }
+}
+
+extension Scheduler {
+    @LinkerSetEntry(kind: 0x6366_0100)
+    static func stop() {}
+}

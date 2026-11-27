@@ -27,7 +27,7 @@ struct IsolationExpansionTests {
             enum Screens {
                 static func show() {}
 
-                #linkerSetRecord(kind: 0x00000001, storing: Self.show as @MainActor () -> Void)
+                #linkerSetRecord(kind: 0x00000001, storing: Screens.show as @MainActor () -> Void)
             }
             """
 
@@ -52,7 +52,7 @@ struct IsolationExpansionTests {
                 @MainActor
                 static func open() {}
 
-                #linkerSetRecord(kind: 0x00000001, storing: Self.open as @MainActor () -> Void)
+                #linkerSetRecord(kind: 0x00000001, storing: Menu.open as @MainActor () -> Void)
             }
             """
 
@@ -78,7 +78,7 @@ struct IsolationExpansionTests {
             extension Menu {
                 static func close() {}
 
-                #linkerSetRecord(kind: 0x00000001, storing: Self.close as @MainActor () -> Void)
+                #linkerSetRecord(kind: 0x00000001, storing: Menu.close as @MainActor () -> Void)
             }
             """
 
@@ -104,7 +104,7 @@ struct IsolationExpansionTests {
             enum Screens {
                 nonisolated static func describe() -> String { "" }
 
-                #linkerSetRecord(kind: 0x00000001, storing: Self.describe as () -> String)
+                #linkerSetRecord(kind: 0x00000001, storing: Screens.describe as () -> String)
             }
             """
 
@@ -130,7 +130,7 @@ struct IsolationExpansionTests {
             enum Titles {
                 static let home = "Home"
 
-                #linkerSetRecord(kind: 0x00000001, storing: Self.home)
+                #linkerSetRecord(kind: 0x00000001, storing: Titles.home)
             }
             """
 

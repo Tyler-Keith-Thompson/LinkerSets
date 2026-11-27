@@ -20,7 +20,7 @@ struct LinkerSetEntryMacroTests {
             enum Routes {
                 static let home = Route(path: "/")
 
-                #linkerSetRecord(kind: 0x726F7574, storing: Self.home)
+                #linkerSetRecord(kind: 0x726F7574, storing: Routes.home)
             }
             """
 
@@ -48,7 +48,7 @@ struct LinkerSetEntryMacroTests {
                     Response()
                 }
 
-                #linkerSetRecord(kind: 0x0000002A, storing: Self.handle(_:retries:) as (Request, Int...) async throws(HandlerError) -> Response)
+                #linkerSetRecord(kind: 0x0000002A, storing: Handlers.handle(_:retries:) as (Request, Int...) async throws(HandlerError) -> Response)
             }
             """
 

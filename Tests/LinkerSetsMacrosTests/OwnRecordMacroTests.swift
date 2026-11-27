@@ -20,7 +20,7 @@ struct OwnRecordMacroTests {
             enum SessionEvents {
                 static let started = "session started"
 
-                #discoverableRecord(kind: 0x73657373, storing: Self.started)
+                #discoverableRecord(kind: 0x73657373, storing: SessionEvents.started)
             }
             """
 

@@ -63,7 +63,8 @@ public macro LinkerSetEntry(kind: UInt32, uniqueKey: String) = #externalMacro(mo
 /// the declaration they're attached to and expand to one call of this, so a client's expansion
 /// tests pin that call alone. The record it writes, one declaration per object format, is
 /// LinkerSets' to change. At file scope the record is a global; in a type or an extension it is a
-/// static member, and `value` reads the declaration through `Self`.
+/// static member, and `value` names the declaration through its enclosing type, `Routes.home`, in
+/// a class or an actor as in a struct.
 ///
 /// - Parameters:
 ///   - kind: The kind the record is tagged with, as an integer literal from 1 through

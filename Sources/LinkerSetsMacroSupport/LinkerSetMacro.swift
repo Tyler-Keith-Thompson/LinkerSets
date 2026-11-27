@@ -45,9 +45,13 @@ import SwiftSyntaxBuilder
 /// function, closure or accessor, a kind that isn't a 32-bit literal other than 0, and a unique key
 /// that is empty or sits in a private or fileprivate type.
 ///
+/// A member's record names it through the enclosing types, `Scheduler.Jobs.clean`, which works
+/// in a class or an actor too.
+///
 /// Before swift-syntax 600 a macro can't see its lexical context. There a type it registers must
-/// be declared at file scope, and the compiler, not the macro, refuses a local declaration or a
-/// member of a generic type, with an error in the expansion.
+/// be declared at file scope, a member's record names it through `Self`, so a static member of a
+/// class or an actor fails to compile in the expansion, and the compiler, not the macro, refuses
+/// a local declaration or a member of a generic type, with an error in the expansion.
 public protocol LinkerSetMacro: PeerMacro {
     /// The kind of the record that `attribute` declares, from 1 through `UInt32.max`.
     ///
@@ -135,7 +139,7 @@ extension LinkerSetMacro {
     ///   - declaration: The declaration it's attached to.
     ///   - context: The expansion's context.
     /// - Returns: The record's declaration, a call of ``LinkerSetRecordMacro`` by
-    ///   ``recordMacroName`` (`#linkerSetRecord(kind: 0x726F7574, storing: Self.home)`), whose own
+    ///   ``recordMacroName`` (`#linkerSetRecord(kind: 0x726F7574, storing: Routes.home)`), whose own
     ///   expansion writes one declaration per object format, followed, when
     ///   ``uniqueKey(of:attribute:)`` gives a key, by the function whose symbol checks it.
     /// - Throws: The ``LinkerSetMacroDiagnostic/error`` of a refused kind, declaration or key, and
@@ -224,7 +228,7 @@ extension LinkerSetMacro {
         if let reason = site.scopeRefusal {
             return .refused(LinkerSetMacroDiagnostic(reason, macroName: macroName, at: declaration))
         }
-        return try value(of: declaration, isMember: site.isMember, enclosingIsMainActor: site.enclosingIsMainActor, attribute: attribute, macroName: macroName)
+        return try value(of: declaration, owner: site.owner, enclosingIsMainActor: site.enclosingIsMainActor, attribute: attribute, macroName: macroName)
     }
 
     /// The expression the record's accessor stores: the variable; the function as a value of its
@@ -237,7 +241,8 @@ extension LinkerSetMacro {
     /// call. A property isolated to the main actor can't be read there at all, so it is refused:
     /// one marked `@MainActor` itself, or a `var` of a `@MainActor` type. A `let` of a
     /// `@MainActor` type is read as it is, since a stored `let` of a Sendable type is nonisolated.
-    private static func value(of declaration: some DeclSyntaxProtocol, isMember: Bool, enclosingIsMainActor: Bool, attribute: AttributeSyntax, macroName: String) throws -> RecordValue {
+    private static func value(of declaration: some DeclSyntaxProtocol, owner: String?, enclosingIsMainActor: Bool, attribute: AttributeSyntax, macroName: String) throws -> RecordValue {
+        let isMember = owner != nil
         func refused(_ reason: LinkerSetMacroDiagnostic.Reason, at node: some SyntaxProtocol) -> RecordValue {
             .refused(LinkerSetMacroDiagnostic(reason, macroName: macroName, at: node))
         }
@@ -251,18 +256,18 @@ extension LinkerSetMacro {
             guard let pattern = variable.bindings.first?.pattern.as(IdentifierPatternSyntax.self) else {
                 return refused(.unnamedVariable, at: variable)
             }
-            return .value(isMember ? "Self.\(pattern.identifier.trimmed)" : "\(pattern.identifier.trimmed)")
+            return .value(owner.map { "\(raw: $0).\(pattern.identifier.trimmed)" } ?? "\(pattern.identifier.trimmed)")
         }
         if let function = declaration.as(FunctionDeclSyntax.self) {
             if isMember && !function.modifiers.isStatic { return refused(.instanceMember, at: function) }
             if let generics = function.genericParameterClause { return refused(.genericFunction, at: generics) }
-            let reference: ExprSyntax = isMember ? "Self.\(raw: function.compoundName)" : "\(raw: function.compoundName)"
+            let reference: ExprSyntax = owner.map { "\(raw: $0).\(raw: function.compoundName)" } ?? "\(raw: function.compoundName)"
             let isMainActor = function.attributes.isMainActor || (enclosingIsMainActor && !function.modifiers.isNonisolated)
             return .value(isMainActor ? "\(reference) as @MainActor \(function.functionType)" : "\(reference) as \(function.functionType)")
         }
         if let type = NominalType(declaration) {
             if let generics = type.genericParameterClause { return refused(.genericType, at: generics) }
-            let reference: ExprSyntax = isMember ? "Self.\(type.name).self" : "\(type.name).self"
+            let reference: ExprSyntax = owner.map { "\(raw: $0).\(type.name).self" } ?? "\(type.name).self"
             // The coercion is the conformance check: a type that doesn't conform fails to compile
             // here, at the attribute.
             guard let conformance = try requiredConformance(of: attribute) else { return .value("\(reference) as Any.Type") }
@@ -283,6 +288,12 @@ private struct RecordSite {
     /// Whether the declaration is a member of a type (or extension), so the record is a static
     /// member beside it.
     let isMember: Bool
+    /// How the record names the type the declaration is a member of, such as `Checkout.Placed`,
+    /// or `nil` at file scope.
+    ///
+    /// The type is named rather than written `Self`, which in a class or actor is covariant and
+    /// can't appear in the record's stored initializer.
+    let owner: String?
     /// Whether the enclosing type or extension is marked `@MainActor`, which a member takes unless
     /// it says otherwise.
     let enclosingIsMainActor: Bool
@@ -296,6 +307,8 @@ private struct RecordSite {
         #if canImport(SwiftSyntax600)
         let lexicalContext = context.lexicalContext  // innermost scope first
         isMember = lexicalContext.first?.isTypeScope ?? false
+        // Outermost scope first: `extension Checkout { struct Placed { ... } }` is `Checkout.Placed`.
+        owner = isMember ? lexicalContext.reversed().compactMap(\.scopeTypeName).joined(separator: ".") : nil
         enclosingIsMainActor = lexicalContext.first?.asProtocol(WithAttributesSyntax.self)?.attributes.isMainActor ?? false
         isInPrivateScope = lexicalContext.contains { $0.asProtocol(WithModifiersSyntax.self)?.modifiers.isPrivate == true }
         // A record is a global, and a local has no address until its scope runs; a requirement
@@ -314,8 +327,10 @@ private struct RecordSite {
         // member (a global can't take it), the enclosing type's isolation can't be seen, and a
         // local declaration or a member of a generic type is left for the compiler to refuse in
         // the expansion. A private enclosing type can't be seen either, so a unique key's check
-        // there goes unwritten without a word.
+        // there goes unwritten without a word. Nor can the enclosing type's name, so a member's
+        // record names it `Self`, which a class's or actor's static member can't use.
         isMember = declaration.asProtocol(WithModifiersSyntax.self)?.modifiers.isStatic ?? false
+        owner = isMember ? "Self" : nil
         enclosingIsMainActor = false
         isInPrivateScope = false
         scopeRefusal = nil
@@ -374,6 +389,15 @@ private struct NominalType {
 }
 
 extension Syntax {
+    /// The name this scope adds to a member's qualified type name: a type's own name, or the type
+    /// an extension extends, or `nil` for anything else.
+    var scopeTypeName: String? {
+        if let type = NominalType(self) { return type.name.text }
+        if let extensionDecl = `as`(ExtensionDeclSyntax.self) { return extensionDecl.extendedType.trimmedDescription }
+        if let protocolDecl = `as`(ProtocolDeclSyntax.self) { return protocolDecl.name.text }
+        return nil
+    }
+
     /// Whether a declaration directly inside this one is a member of a type.
     var isTypeScope: Bool {
         `is`(StructDeclSyntax.self) || `is`(EnumDeclSyntax.self) || `is`(ClassDeclSyntax.self)

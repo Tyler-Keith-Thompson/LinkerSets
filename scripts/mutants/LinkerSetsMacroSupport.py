@@ -6,8 +6,9 @@
 # statements rather than an expression. Every mutant must be caught; one that survives needs a
 # test, or a note here saying why it is equivalent.
 #
-# The spec covers the unique key's expansion so far; the record's own expansion is pinned by the
-# same expansion tests and the compile-failure fixtures, and takes mutants when it next changes.
+# The spec covers the unique key's expansion and how a member's record names its type; the rest of
+# the record's expansion is pinned by the same expansion tests and the compile-failure fixtures, and
+# takes mutants when it next changes.
 
 TESTS = ["LinkerSetsMacrosTests"]
 
@@ -26,6 +27,11 @@ MUTANTS = [
     Mutant("kindprefixkept", L, "kind.hexadecimalLiteral.dropFirst(2)", "kind.hexadecimalLiteral.dropFirst(0)"),
     Mutant("unpaddedbyte", L, '(byte < 0x10 ? "0" : "")', '""'),
     Mutant("punctuationverbatim", L, 'UInt8(ascii: "0")...UInt8(ascii: "9")', 'UInt8(ascii: "0")...UInt8(ascii: "_")'),
+
+    # A member's owner: every enclosing type, outermost first, and an extension's extended type.
+    Mutant("innermostfirst", L, "lexicalContext.reversed().compactMap(\\.scopeTypeName)", "lexicalContext.compactMap(\\.scopeTypeName)"),
+    Mutant("innermostonly", L, "lexicalContext.reversed().compactMap(\\.scopeTypeName)", "lexicalContext.prefix(1).compactMap(\\.scopeTypeName)"),
+    Mutant("extensionunnamed", L, "if let extensionDecl = `as`(ExtensionDeclSyntax.self) { return extensionDecl.extendedType.trimmedDescription }", "", mode="stmt"),
 
     # The uniqueKey: argument.
     Mutant("anylabel", A, '$0.label?.text == "uniqueKey"', "true"),

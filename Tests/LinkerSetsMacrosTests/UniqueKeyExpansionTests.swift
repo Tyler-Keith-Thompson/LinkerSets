@@ -71,7 +71,7 @@ struct UniqueKeyExpansionTests {
             enum Routes {
                 static func home() {}
 
-                #linkerSetRecord(kind: 0x6B657964, storing: Self.home as () -> Void)
+                #linkerSetRecord(kind: 0x6B657964, storing: Routes.home as () -> Void)
 
                 @_silgen_name("$linkerset_kind_6B657964_key_home") @used nonisolated static func __macro_local_18linkerSetUniqueKeyfMu_() {
                 }
@@ -208,7 +208,7 @@ struct UniqueKeyExpansionTests {
             enum Routes {
                 static let home = 1
 
-                #linkerSetRecord(kind: 0x726F7574, storing: Self.home)
+                #linkerSetRecord(kind: 0x726F7574, storing: Routes.home)
 
                 @_silgen_name("$linkerset_kind_726F7574_key__2Fhome") @used nonisolated static func __macro_local_18linkerSetUniqueKeyfMu_() {
                 }
@@ -347,7 +347,7 @@ struct UniqueKeyExpansionTests {
             private enum Routes {
                 static let home = 1
 
-                #linkerSetRecord(kind: 0x6B657964, storing: Self.home)
+                #linkerSetRecord(kind: 0x6B657964, storing: Routes.home)
             }
             """
 

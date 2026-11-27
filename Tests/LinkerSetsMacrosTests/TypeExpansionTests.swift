@@ -61,7 +61,7 @@ struct TypeExpansionTests {
         )
     }
 
-    @Test("A class nested in a type becomes a static record that names it through Self")
+    @Test("A class nested in a type becomes a static record that names it through its enclosing type")
     func nestedClass() {
         let source = """
             enum Checkout {
@@ -73,7 +73,7 @@ struct TypeExpansionTests {
             enum Checkout {
                 final class Purchase: AnalyticsEvent {}
 
-                #linkerSetRecord(kind: 0x65766E74, storing: Self.Purchase.self as any (ExampleEvents.AnalyticsEvent).Type)
+                #linkerSetRecord(kind: 0x65766E74, storing: Checkout.Purchase.self as any (ExampleEvents.AnalyticsEvent).Type)
 
                 @_silgen_name("$linkerset_kind_65766E74_key_Purchase") @used nonisolated static func __macro_local_18linkerSetUniqueKeyfMu_() {
                 }
@@ -88,7 +88,7 @@ struct TypeExpansionTests {
         )
     }
 
-    @Test("An actor in an extension becomes a static record that names it through Self")
+    @Test("An actor in an extension becomes a static record that names it through its enclosing type")
     func actorInExtension() {
         let source = """
             extension Checkout {
@@ -100,7 +100,7 @@ struct TypeExpansionTests {
             extension Checkout {
                 actor Refund: AnalyticsEvent {}
 
-                #linkerSetRecord(kind: 0x65766E74, storing: Self.Refund.self as any (ExampleEvents.AnalyticsEvent).Type)
+                #linkerSetRecord(kind: 0x65766E74, storing: Checkout.Refund.self as any (ExampleEvents.AnalyticsEvent).Type)
 
                 @_silgen_name("$linkerset_kind_65766E74_key_Refund") @used nonisolated static func __macro_local_18linkerSetUniqueKeyfMu_() {
                 }

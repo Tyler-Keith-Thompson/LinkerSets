@@ -59,7 +59,7 @@ let endpoints = Endpoints.all
 ### What the re-export exposes
 
 `@Route static let home = ...` expands, in the user's file, to one call:
-`#linkerSetRecord(kind: 0x726F7574, storing: Self.home)`. That macro, which LinkerSets declares,
+`#linkerSetRecord(kind: 0x726F7574, storing: Routes.home)`. That macro, which LinkerSets declares,
 expands in turn to the record itself, one declaration per object format, naming
 `LinkerSetsRuntime.LinkerSetRecord`. So the user's file has to see LinkerSets. With
 `@_exported import LinkerSets` in the client's library, importing the client is enough. With a
@@ -232,7 +232,7 @@ assertMacroExpansion(
     enum Endpoints {
         static let home = Endpoint(path: "/")
 
-        #linkerSetRecord(kind: 0x726F7574, storing: Self.home)
+        #linkerSetRecord(kind: 0x726F7574, storing: Endpoints.home)
     }
     """,
     macroSpecs: ["Route": MacroSpec(type: RouteMacro.self)],

@@ -21,7 +21,7 @@ struct ClientMacroTests {
             enum Endpoints {
                 static let home = Endpoint(path: "/")
 
-                #linkerSetRecord(kind: 0x726F7574, storing: Self.home)
+                #linkerSetRecord(kind: 0x726F7574, storing: Endpoints.home)
             }
             """
 

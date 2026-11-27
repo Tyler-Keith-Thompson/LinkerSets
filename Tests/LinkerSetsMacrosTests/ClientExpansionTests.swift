@@ -111,7 +111,7 @@ struct ClientExpansionTests {
             enum Screens {
                 static let home = 1
 
-                #linkerSetRecord(kind: 0x65766E74, storing: Self.home)
+                #linkerSetRecord(kind: 0x65766E74, storing: Screens.home)
             }
             """
 

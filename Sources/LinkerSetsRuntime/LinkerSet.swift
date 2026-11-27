@@ -9,7 +9,7 @@
 /// a PE image (Windows) the grouped section `.lnkset$M`, which the linker merges into `.lnkset`. A
 /// linker set finds them at run time in every image the loader has mapped: the program, the
 /// shared libraries it was linked with, and any loaded later with `dlopen`. On Apple platforms it
-/// reads each image's section through the loader's list of images; on ELF platforms (Linux,
+/// reads each image's section through the loader's image callbacks; on ELF platforms (Linux,
 /// Android) it reads each image's note segments through `dl_iterate_phdr`; on
 /// WebAssembly (WASI), whose program is one statically linked module, it reads the section
 /// between the `__start_linker_sets` and `__stop_linker_sets` symbols wasm-ld defines; on Windows
@@ -20,7 +20,11 @@
 /// let routes = LinkerSet<Route>(kind: .routes).values
 /// ```
 ///
-/// Each read asks the loader again, so a read after a `dlopen` includes the new image's records.
+/// Each read asks the loader again, so a read after a `dlopen` includes the new image's records,
+/// and one after the loader unmaps an image leaves its records out. An image loaded or unloaded
+/// during a read is in it whole or not at all. Don't `dlclose` a library that holds Swift code:
+/// dyld keeps such an image mapped, and on Linux and Android the Swift runtime still refers to its
+/// metadata after the loader unmaps it, as a record read from it refers to its accessor.
 /// Records come back image by image in the loader's order, and within an image in the order the
 /// linker laid them out, so two reads with no load between them return the same records in the
 /// same order.

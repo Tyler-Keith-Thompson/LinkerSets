@@ -10,6 +10,10 @@
 #   Mach-O, where `just mutate` runs, no image holds a kind-0 record or one with a null accessor
 #   (the ELF and Wasm readers' empty-slot markers don't exist there), so the filter that follows
 #   already returns nothing for them. The value(as:) failure tests pin the empty-slot error.
+# - Dropping the Mach-O remove-image callback's removal: dyld doesn't unmap an image that holds
+#   Swift code, so a dlclose'd library with records stays in the list either way, and the images
+#   dyld does unmap hold no records. Checked by hand under Bazel: UnloadingLibraryTests passes with
+#   it, and the library's 2 records are still found after the last dlclose.
 #
 # The ELF, Wasm and COFF readers aren't compiled on the Mac, so they take no mutants here; their
 # walks over hand-built bytes are tested on every platform they build for.
@@ -47,5 +51,5 @@ MUTANTS = [
     Mutant("lastrecorddropped", B, "bytes.count / stride", "max(0, bytes.count / stride - 1)"),
     Mutant("misalignedoffset", B, "index * stride", "index * (stride / 2)"),
     Mutant("halfsection", M, "Int(size)", "Int(size) / 2"),
-    Mutant("mainimageonly", M, "_dyld_image_count()", "min(1, _dyld_image_count())"),
+    Mutant("mainimageonly", M, "loadedImages.withLock { $0.append(address) }", "loadedImages.withLock { if $0.isEmpty { $0.append(address) } }"),
 ]

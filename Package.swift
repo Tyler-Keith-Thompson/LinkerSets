@@ -34,6 +34,7 @@ let products: [Product] = [
 let sharedLibraries: [Product] = wasiTests != nil ? [] : [
     .library(name: "ExampleDynamicPlugins", type: .dynamic, targets: ["ExampleDynamicPlugins"]),
     .library(name: "ExampleLoadedPlugins", type: .dynamic, targets: ["ExampleLoadedPlugins"]),
+    .library(name: "ExampleUnloadedPlugins", type: .dynamic, targets: ["ExampleUnloadedPlugins"]),
 ]
 
 let dependencies: [Package.Dependency] = [
@@ -57,6 +58,7 @@ let targets: [Target] = [
     .target(name: "ExampleCatalog", dependencies: ["LinkerSetsRuntime"], exclude: bazelFiles),
     .target(name: "ExampleManyRecords", dependencies: ["LinkerSets"], exclude: bazelFiles),
     .target(name: "ExampleLoadedPlugins", dependencies: ["LinkerSets"], exclude: bazelFiles),
+    .target(name: "ExampleUnloadedPlugins", dependencies: ["LinkerSets"], exclude: bazelFiles),
     // Discovery: compiler plugin
     .macro(name: "LinkerSetsMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
     // Examples: compiler plugin

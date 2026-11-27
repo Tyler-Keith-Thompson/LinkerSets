@@ -13,7 +13,7 @@ library's own section and never depends on Swift Testing or its underscored disc
 
 It optimizes for discovery that cannot break. It works on macOS, iOS, tvOS, watchOS (including the
 32-bit arm64_32), visionOS, Mac Catalyst, Linux, Android, Windows and WASI, and on each it
-uses only the format's documented mechanisms: Mach-O sections through the loader's image list and
+uses only the format's documented mechanisms: Mach-O sections through the loader's image callbacks and
 `getsectiondata`, ELF records as notes in a `PT_NOTE` segment found through `dl_iterate_phdr`
 (which sees every loaded image, where `__start_`/`__stop_` symbols bound only their own),
 WebAssembly sections through linker-defined `__start_`/`__stop_` symbols, COFF through a grouped

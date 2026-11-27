@@ -8,12 +8,22 @@ extension LinkerSetSection {
     static let imageSectionName = Array(".lnkset".utf8)
 
     /// Every record in every module the process has loaded, module by module in the loader's
-    /// order, and within a module in the order the linker laid them out.
+    /// order, and within a module in the order the linker laid them out. A module freed during the
+    /// walk is read whole or left out.
     static func records() -> [LinkerSetRecord] {
         // K32EnumProcessModules (psapi, exported by kernel32) lists the loaded modules, the
         // program and its DLLs, as dyld's image list does on Apple platforms; each module's
         // handle is its base address, where its PE headers begin. No symbol is looked up by name.
-        modules().flatMap { base in records(inImageAt: base) }
+        modules().flatMap { base in
+            // A module freed after the list was taken would leave `base` pointing at unmapped
+            // memory. GetModuleHandleExW takes a reference on the module mapped at that address, if
+            // one still is, so it stays mapped while its headers are read; FreeLibrary drops it.
+            var module: HMODULE?
+            guard GetModuleHandleExW(DWORD(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS), base.assumingMemoryBound(to: WCHAR.self), &module),
+                  let module else { return [] }
+            defer { FreeLibrary(module) }
+            return records(inImageAt: UnsafeRawPointer(module))
+        }
     }
 
     private static func modules() -> [UnsafeRawPointer] {

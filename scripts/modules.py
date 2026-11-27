@@ -129,6 +129,7 @@ MODULES = [
     ("ExampleCatalog", "Examples", "A module that only reads records, of ExamplePlugins' and ExampleMigrations' kinds, depending on LinkerSetsRuntime alone.", ["LinkerSetsRuntime"]),
     ("ExampleManyRecords", "Examples", "3,300 generated records of two kinds, for the tests of how reading scales.", ["LinkerSets"]),
     ("ExampleLoadedPlugins", "Examples", "Records in a shared library the test program opens with dlopen, in the process only once loaded.", ["LinkerSets"]),
+    ("ExampleUnloadedPlugins", "Examples", "Records in a shared library the test program opens and closes in a loop while it reads.", ["LinkerSets"]),
 ]
 
 # Modules only iOS builds: SwiftUI views and what they draw with. Bazel builds them for the
@@ -144,7 +145,7 @@ IOS_MINIMUM = "18.0"
 # so neither they nor their dependencies ship in `import LinkerSets`. Only executables, test
 # targets and other example modules may depend on one. A compiler plugin (MACROS) an example module
 # uses is listed here too: plugins ship nothing anyway, and the listing lets only examples use it.
-EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros", "ExampleDynamicPlugins", "ExampleLoadedPlugins", "ExampleCatalog", "ExampleRoutesKind", "ExampleManyRecords"]
+EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros", "ExampleDynamicPlugins", "ExampleLoadedPlugins", "ExampleCatalog", "ExampleRoutesKind", "ExampleManyRecords", "ExampleUnloadedPlugins"]
 
 # Example modules also built as shared libraries, by name from EXAMPLE_MODULES: fixtures for tests
 # of code that sits in an image of its own, a library the program links at launch or opens with
@@ -155,7 +156,7 @@ EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "Examp
 # module's swift_library, on macOS and Linux alone, and //:package_swift_test compares the two.
 # A test target uses one through LINKED_SHARED_LIBRARIES or LOADED_SHARED_LIBRARIES, never among
 # its dependencies, which would link the module into the test program and its records with it.
-SHARED_LIBRARIES = ["ExampleDynamicPlugins", "ExampleLoadedPlugins"]
+SHARED_LIBRARIES = ["ExampleDynamicPlugins", "ExampleLoadedPlugins", "ExampleUnloadedPlugins"]
 
 # Shared libraries (SHARED_LIBRARIES) a test target links at launch, by test target name: the
 # program records each as a library it needs, so the loader maps it before the tests run. Bazel
@@ -175,7 +176,7 @@ LINKED_TESTS_DIRECTORY = "LinkedSharedLibraries"
 # The test program doesn't link them; it finds the file at run time: under Bazel in its runfiles
 # (`data`, at Sources/<name>/lib<name>.<extension> under $TEST_SRCDIR/$TEST_WORKSPACE), under
 # SwiftPM beside its own test bundle or binary, where SwiftPM builds every product.
-LOADED_SHARED_LIBRARIES = {"LinkerSetsDynamicTests": ["ExampleLoadedPlugins"]}
+LOADED_SHARED_LIBRARIES = {"LinkerSetsDynamicTests": ["ExampleLoadedPlugins", "ExampleUnloadedPlugins"]}
 
 # Modules offered as products of their own but left out of the umbrella, by name from MODULES:
 # ones an adopter imports on purpose rather than with `import LinkerSets`, such as a test-support

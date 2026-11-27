@@ -9,10 +9,10 @@ them at run time. None reads Swift's runtime metadata or looks a symbol up by na
 
 | Platform | Section | How records are found |
 |---|---|---|
-| macOS, iOS, tvOS, watchOS, visionOS, Mac Catalyst | `__DATA_CONST,__linker_sets` | The loader's image list (`_dyld_image_count`, `_dyld_get_image_header`) and `getsectiondata` in each image |
+| macOS, iOS, tvOS, watchOS, visionOS, Mac Catalyst | `__DATA_CONST,__linker_sets` | The loader's image callbacks (`_dyld_register_func_for_add_image`, `_dyld_register_func_for_remove_image`) and `getsectiondata` in each image |
 | Linux, Android | `.note.linker_sets`, each record an ELF note | `dl_iterate_phdr` and each image's `PT_NOTE` segments |
 | WebAssembly (WASI) | `linker_sets` | Between the `__start_linker_sets` and `__stop_linker_sets` symbols wasm-ld defines |
-| Windows | `.lnkset$M`, merged by the linker into `.lnkset` | `K32EnumProcessModules` and each module's PE section table, skipping the zero padding the linker may put between contributions |
+| Windows | `.lnkset$M`, merged by the linker into `.lnkset` | `K32EnumProcessModules`, each module pinned with `GetModuleHandleExW` while its PE section table is read, skipping the zero padding the linker may put between contributions |
 
 ### What is tested where
 
@@ -22,6 +22,7 @@ them at run time. None reads Swift's runtime metadata or looks a symbol up by na
 | macOS, release with dead stripping, an unreferenced module's records kept | `LinkerSetsPerformanceTests`: `LinkingTests` | `just test-release` |
 | macOS, a shared library linked at launch | `LinkerSetsDynamicTests`: `LinkedLibraryTests` | `just test` (Bazel only) |
 | macOS, a library loaded with `dlopen` after the first read | `LinkerSetsDynamicTests`: `LoadedLibraryTests` | `just test`, `just spm-test` |
+| macOS and Linux, a library opened and closed in a loop while another thread reads (on Linux, glibc's `libanl`, which the loader unmaps) | `LinkerSetsDynamicTests`: `UnloadingLibraryTests` | `just test`, `just spm-test`, CI's Linux jobs |
 | iOS simulator, inside an app's bundle | `LinkerSetsTestsSimulator` | `just test` on a Mac |
 | tvOS, watchOS and visionOS simulators, Mac Catalyst | `LinkerSetsTests`, `LinkerSetsPerformanceTests`, `LinkerSetsDynamicTests` (`dlopen`) | `just apple-test` |
 | watchOS devices, 32-bit arm64_32, compiled | `LinkerSetRecordLayoutTests` (the 20-byte record) | `just apple-test` |
@@ -43,3 +44,39 @@ A record is in the program only if its object file is. SwiftPM and Bazel link ev
 depends on. A build that pulls a static archive's members in only on demand leaves out a module
 nothing calls into: link it whole with `-force_load` (Apple platforms) or `--whole-archive`
 (Linux).
+
+### Loading and unloading during a read
+
+A read takes a snapshot: every image loaded when the walk reaches it is read whole, and an image
+loaded or unloaded while a read runs is either in that read's records in full or absent.
+
+| Format | An image loaded during a read | An image unloaded during a read |
+|---|---|---|
+| Mach-O | Found if dyld added it before the walk took its lock, missed otherwise | dyld calls the remove callback before it unmaps an image, and the callback waits for the walk's lock, so the image is read whole or not at all. dyld never unmaps an image that holds Swift code |
+| ELF | `dl_iterate_phdr` holds the loader's lock for the whole walk, so a `dlopen` finishing during it waits, and is missed | A `dlclose` waits for the walk the same way |
+| COFF | Found if `K32EnumProcessModules` listed it, missed otherwise | Each module is pinned with `GetModuleHandleExW` while its headers are read; one freed before that is left out |
+| WebAssembly | A program is one module; nothing loads or unloads | |
+
+The next read sees the change: a library opened since is found, and one the loader has unmapped
+since is gone.
+
+### Records of a closed library
+
+A record's accessor and the value it hands back live in the record's image, and so does the Swift
+metadata of the record's type. On Apple platforms dyld never unmaps an image that holds Swift code,
+so a library with records stays mapped after `dlclose`: its records are still found, and they and
+their values stay valid.
+
+On Linux and Android the loader unmaps a library once its last handle is closed, but the Swift
+runtime keeps the library's type metadata and conformances registered. After that, the process can
+crash in any later dynamic cast or `print`, whether or not LinkerSets reads anything. A
+``/LinkerSetsRuntime/LinkerSetRecord`` copied out of the library also holds a dangling accessor,
+which ``/LinkerSetsRuntime/LinkerSetRecord/value(as:)`` would call. LinkerSets can't detect either
+case, because nothing tells a copied record that its image is gone.
+
+Don't `dlclose` a library that holds Swift code, records included, while the process runs. Open
+plug-ins once and keep them open; a library opened with `RTLD_NODELETE` stays mapped after
+`dlclose`. Closing a
+library without Swift code (a C library) is safe while another thread reads: the walk never touches
+an image that is going away.
+

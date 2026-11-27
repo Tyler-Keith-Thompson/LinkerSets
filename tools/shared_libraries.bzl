@@ -5,4 +5,5 @@
 SHARED_LIBRARY_PACKAGES = [
     "Sources/ExampleDynamicPlugins",
     "Sources/ExampleLoadedPlugins",
+    "Sources/ExampleUnloadedPlugins",
 ]

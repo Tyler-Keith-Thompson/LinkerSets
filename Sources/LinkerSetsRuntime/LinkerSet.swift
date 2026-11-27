@@ -10,7 +10,7 @@
 /// linker set finds them at run time in every image the loader has mapped: the program, the
 /// shared libraries it was linked with, and any loaded later with `dlopen`. On Apple platforms it
 /// reads each image's section through the loader's list of images; on ELF platforms (Linux,
-/// Android, FreeBSD) it reads each image's note segments through `dl_iterate_phdr`; on
+/// Android) it reads each image's note segments through `dl_iterate_phdr`; on
 /// WebAssembly (WASI), whose program is one statically linked module, it reads the section
 /// between the `__start_linker_sets` and `__stop_linker_sets` symbols wasm-ld defines; on Windows
 /// it reads each loaded module's `.lnkset` section through `K32EnumProcessModules` and the

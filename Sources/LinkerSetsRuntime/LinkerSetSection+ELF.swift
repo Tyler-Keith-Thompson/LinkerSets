@@ -1,5 +1,5 @@
 #if objectFormat(ELF)
-// dl_iterate_phdr is documented in glibc, bionic and FreeBSD's libc (link.h). Swift's Glibc module
+// dl_iterate_phdr is documented in glibc and bionic (link.h). Swift's Glibc module
 // doesn't export link.h, so it is declared here with `@_extern(c)` (the Extern experimental
 // feature, EXPERIMENTAL_FEATURES in scripts/modules.py): an ordinary reference the linker
 // resolves, not a lookup by name. The callback takes `dl_phdr_info` as a raw pointer, read at the

@@ -10,7 +10,7 @@ them at run time. None reads Swift's runtime metadata or looks a symbol up by na
 | Platform | Section | How records are found |
 |---|---|---|
 | macOS, iOS, tvOS, watchOS, visionOS, Mac Catalyst | `__DATA_CONST,__linker_sets` | The loader's image list (`_dyld_image_count`, `_dyld_get_image_header`) and `getsectiondata` in each image |
-| Linux, Android, FreeBSD | `.note.linker_sets`, each record an ELF note | `dl_iterate_phdr` and each image's `PT_NOTE` segments |
+| Linux, Android | `.note.linker_sets`, each record an ELF note | `dl_iterate_phdr` and each image's `PT_NOTE` segments |
 | WebAssembly (WASI) | `linker_sets` | Between the `__start_linker_sets` and `__stop_linker_sets` symbols wasm-ld defines |
 | Windows | `.lnkset$M`, merged by the linker into `.lnkset` | `K32EnumProcessModules` and each module's PE section table, skipping the zero padding the linker may put between contributions |
 
@@ -30,7 +30,6 @@ them at run time. None reads Swift's runtime metadata or looks a symbol up by na
 | Windows, modules linked statically | `LinkerSetsTests`, `LinkerSetsPerformanceTests`, and `LinkerSetPaddedSectionTests` (the padding walk, on every platform) | CI's Windows workflow, when Windows code changes |
 | Android (aarch64, an Android 15 emulator), modules linked statically and a library loaded with `dlopen`, debug and release | `LinkerSetsTests` (`LinkerSetNoteTests` among them), `LinkerSetsPerformanceTests`, `LinkerSetsDynamicTests` (`dlopen`) | `just android-test`, `just android-test -c release`, on a Mac; not in CI |
 | Android, a shared library linked at launch | Untested: the test of it builds under Bazel only; `dl_iterate_phdr` reads it as it does a `dlopen`ed library | |
-| FreeBSD | Untested; the same reader as Linux | |
 
 A WebAssembly program is one statically linked module, so it has no shared libraries to search.
 

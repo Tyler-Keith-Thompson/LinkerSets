@@ -12,7 +12,7 @@ records (kind, accessor, context, reserved words) so tools can share it, but it 
 library's own section and never depends on Swift Testing or its underscored discovery module.
 
 It optimizes for discovery that cannot break. It works on macOS, iOS, tvOS, watchOS (including the
-32-bit arm64_32), visionOS, Mac Catalyst, Linux, Android, Windows, FreeBSD and WASI, and on each it
+32-bit arm64_32), visionOS, Mac Catalyst, Linux, Android, Windows and WASI, and on each it
 uses only the format's documented mechanisms: Mach-O sections through the loader's image list and
 `getsectiondata`, ELF records as notes in a `PT_NOTE` segment found through `dl_iterate_phdr`
 (which sees every loaded image, where `__start_`/`__stop_` symbols bound only their own),
@@ -259,11 +259,6 @@ Every shell command gets a timeout. macOS has no `timeout`; use
   push to `main` that touches the paths it lists (the COFF reader, the section walk, the macro's
   expansion, `Package.swift`), and by hand with `gh workflow run Windows`. Add a file to its paths
   when Windows starts compiling it differently.
-- FreeBSD is checked the same way by `.github/workflows/freebsd.yml` alone: SwiftPM in a FreeBSD 14
-  VM on an Ubuntu runner, debug and release, with swift.org's FreeBSD development preview, since no
-  Swift release ships for FreeBSD yet. It runs on a push to `main` that touches the ELF reader, the
-  section walk, the record's expansion or `Package.swift`, and by hand with
-  `gh workflow run FreeBSD`.
 - CI's Bazel jobs run in `ghcr.io/tyler-keith-thompson/swift-bazel:<swift>-<bazel>`, Swift with
   the Bazel in `.bazelversion` already in it, built by the project template's `ci-image/build.sh`.
   Changing `.bazelversion` or the workflows' Swift version means a new tag from there.

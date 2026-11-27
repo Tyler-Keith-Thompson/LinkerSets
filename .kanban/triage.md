@@ -20,7 +20,7 @@ release builds, dead stripping, static and dynamic linking and `dlopen`.
 - One discovery back end per object format: Mach-O (loader image list + `getsectiondata`), ELF and
   WebAssembly (`__start_`/`__stop_` symbols), COFF (`$A`/`$M`/`$Z` grouped sections).
 - Platform support and its tests: macOS, iOS, tvOS, watchOS (including arm64_32), visionOS, Mac
-  Catalyst, Linux, Android, Windows, FreeBSD, WASI; and per-platform documentation of what works.
+  Catalyst, Linux, Android, Windows, WASI; and per-platform documentation of what works.
 - Tests and fixtures proving survival of release builds, dead stripping, static linking, dynamic
   linking and code loaded later with `dlopen`.
 - DocC guides for clients (declaring a kind, migrating a hand-written registry).
@@ -88,7 +88,7 @@ release builds, dead stripping, static and dynamic linking and `dlopen`.
 ## Open questions
 - Q1. Minimum deployment targets: the template defaults are macOS 15, iOS 18, tvOS 18, watchOS 11,
   visionOS 2. Do they stay, or go lower for Traffluent's adopters?
-- Q2. Which platforms get real CI runs (Android emulator, Windows, FreeBSD, watchOS arm64_32
+- Q2. Which platforms get real CI runs (Android emulator, Windows, watchOS arm64_32
   device or simulator) versus cross-compile-only, and is cross-compile-only enough to claim support?
 - Q3. Do records from a `dlopen`ed image that is later `dlclose`d disappear from enumeration, and
   must the API notice image loads after first enumeration (observe the loader) or only on each call?

@@ -22,6 +22,11 @@
 /// `LinkerSet<Any.Type>`. A client whose types share a protocol reads them as `any P.Type` through
 /// a macro of its own that requires it (LinkerSetsMacroSupport's `LinkerSetMacro`).
 ///
+/// A module that uses it depends on LinkerSets, so its build includes LinkerSets' macro plugin,
+/// LinkerSetsMacros, and swift-syntax. A client with a plugin of its own can give its modules an
+/// entry macro that writes the same records on LinkerSetsRuntime alone:
+/// [Writing records without depending on LinkerSets](https://tyler-keith-thompson.github.io/LinkerSets/documentation/linkersetsmacrosupport#Writing-records-without-depending-on-LinkerSets).
+///
 /// - Parameter kind: The kind the record is tagged with, as an integer literal.
 @attached(peer)
 public macro LinkerSetEntry(kind: UInt32) = #externalMacro(module: "LinkerSetsMacros", type: "LinkerSetEntryMacro")

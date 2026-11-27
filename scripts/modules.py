@@ -129,6 +129,8 @@ MODULES = [
     ("ExampleCatalog", "Examples", "A module that only reads records, of ExamplePlugins' and ExampleMigrations' kinds, depending on LinkerSetsRuntime alone.", ["LinkerSetsRuntime"]),
     ("ExampleManyRecords", "Examples", "3,300 generated records of two kinds, for the tests of how reading scales.", ["LinkerSets"]),
     ("ExampleLoadedPlugins", "Examples", "Records in a shared library the test program opens with dlopen, in the process only once loaded.", ["LinkerSets"]),
+    ("ExampleDiscovery", "Examples", "A client of LinkerSetsRuntime alone that writes records: its @Discoverable(kind:) and #discoverableRecord macros, whose plugin is ExampleDiscoveryMacros.", ["LinkerSetsRuntime", "ExampleDiscoveryMacros"]),
+    ("ExampleSessions", "Examples", "A module that writes a few records through ExampleDiscovery's @Discoverable, with no dependency on LinkerSets.", ["LinkerSetsRuntime", "ExampleDiscovery"]),
     ("ExampleUnloadedPlugins", "Examples", "Records in a shared library the test program opens and closes in a loop while it reads.", ["LinkerSets"]),
 ]
 
@@ -145,7 +147,7 @@ IOS_MINIMUM = "18.0"
 # so neither they nor their dependencies ship in `import LinkerSets`. Only executables, test
 # targets and other example modules may depend on one. A compiler plugin (MACROS) an example module
 # uses is listed here too: plugins ship nothing anyway, and the listing lets only examples use it.
-EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros", "ExampleDynamicPlugins", "ExampleLoadedPlugins", "ExampleCatalog", "ExampleRoutesKind", "ExampleManyRecords", "ExampleUnloadedPlugins"]
+EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros", "ExampleDynamicPlugins", "ExampleLoadedPlugins", "ExampleCatalog", "ExampleRoutesKind", "ExampleManyRecords", "ExampleUnloadedPlugins", "ExampleDiscovery", "ExampleDiscoveryMacros", "ExampleSessions"]
 
 # Example modules also built as shared libraries, by name from EXAMPLE_MODULES: fixtures for tests
 # of code that sits in an image of its own, a library the program links at launch or opens with
@@ -247,6 +249,8 @@ MACROS = [
      ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
     ("ExampleEventsMacros", "Examples", "The third example client's plugin: @Event's expansion, which requires AnalyticsEvent.",
      ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
+    ("ExampleDiscoveryMacros", "Examples", "ExampleDiscovery's plugin: @Discoverable(kind:), and #discoverableRecord in place of LinkerSets' #linkerSetRecord.",
+     ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
 ]
 
 # SwiftPM command plugins: (name, verb, description, reason), run with `swift package <verb>`.
@@ -267,11 +271,11 @@ EXECUTABLES = [
 # Test targets. SwiftPM rejects a target with no sources, so list a target only once its directory
 # holds tests. (name, dependencies)
 TEST_TARGETS = [
-    (f"{PROJECT}Tests", [PROJECT, "LinkerSetsRuntime", "ExampleCatalog", "ExampleManyRecords", "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
+    (f"{PROJECT}Tests", [PROJECT, "LinkerSetsRuntime", "ExampleCatalog", "ExampleManyRecords", "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleSessions", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
     # Links ExampleDynamicPlugins at launch (under Bazel) and opens ExampleLoadedPlugins with dlopen
     # (LINKED_SHARED_LIBRARIES, LOADED_SHARED_LIBRARIES), so depends on neither.
     ("LinkerSetsDynamicTests", [PROJECT]),
-    ("LinkerSetsMacrosTests", ["LinkerSetsMacros", "ExampleRoutesMacros", "ExampleEventsMacros", "LinkerSetsMacroSupport", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
+    ("LinkerSetsMacrosTests", ["LinkerSetsMacros", "ExampleRoutesMacros", "ExampleEventsMacros", "ExampleDiscoveryMacros", "LinkerSetsMacroSupport", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
 ]
 
 # The modules the test-support target depends on (fixtures are usually written against the

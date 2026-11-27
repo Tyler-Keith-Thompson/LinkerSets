@@ -58,6 +58,8 @@ let targets: [Target] = [
     .target(name: "ExampleCatalog", dependencies: ["LinkerSetsRuntime"], exclude: bazelFiles),
     .target(name: "ExampleManyRecords", dependencies: ["LinkerSets"], exclude: bazelFiles),
     .target(name: "ExampleLoadedPlugins", dependencies: ["LinkerSets"], exclude: bazelFiles),
+    .target(name: "ExampleDiscovery", dependencies: ["LinkerSetsRuntime", "ExampleDiscoveryMacros"], exclude: bazelFiles),
+    .target(name: "ExampleSessions", dependencies: ["LinkerSetsRuntime", "ExampleDiscovery"], exclude: bazelFiles),
     .target(name: "ExampleUnloadedPlugins", dependencies: ["LinkerSets"], exclude: bazelFiles),
     // Discovery: compiler plugin
     .macro(name: "LinkerSetsMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
@@ -67,16 +69,18 @@ let targets: [Target] = [
     .macro(name: "ExampleMigrationsMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
     // Examples: compiler plugin
     .macro(name: "ExampleEventsMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
+    // Examples: compiler plugin
+    .macro(name: "ExampleDiscoveryMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
 
     // Shared fixtures (data only) for every test target.
     .target(name: "LinkerSetsTestSupport", path: "Tests/LinkerSetsTestSupport", exclude: bazelFiles),
 
-    .testTarget(name: "LinkerSetsTests", dependencies: ["LinkerSets", "LinkerSetsRuntime", "ExampleCatalog", "ExampleManyRecords", "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "LinkerSetsTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng"), .product(name: "Sampling", package: "swiftprng")], exclude: testExcludes(["BUILD.bazel", "Performance"], wasi: [])),
+    .testTarget(name: "LinkerSetsTests", dependencies: ["LinkerSets", "LinkerSetsRuntime", "ExampleCatalog", "ExampleManyRecords", "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleSessions", "LinkerSetsTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng"), .product(name: "Sampling", package: "swiftprng")], exclude: testExcludes(["BUILD.bazel", "Performance"], wasi: [])),
     .testTarget(name: "LinkerSetsDynamicTests", dependencies: ["LinkerSets"], exclude: testExcludes(["BUILD.bazel", "LinkedSharedLibraries"], wasi: []), swiftSettings: [.enableExperimentalFeature("Extern")]),
-    .testTarget(name: "LinkerSetsMacrosTests", dependencies: ["LinkerSetsMacros", "ExampleRoutesMacros", "ExampleEventsMacros", "LinkerSetsMacroSupport", .product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"), .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax")], exclude: testExcludes(bazelFiles, wasi: [])),
+    .testTarget(name: "LinkerSetsMacrosTests", dependencies: ["LinkerSetsMacros", "ExampleRoutesMacros", "ExampleEventsMacros", "ExampleDiscoveryMacros", "LinkerSetsMacroSupport", .product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"), .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax")], exclude: testExcludes(bazelFiles, wasi: [])),
 
     // Speed-reliant tests, split from the target of the same module (PERFORMANCE_TESTS in scripts/modules.py).
-    .testTarget(name: "LinkerSetsPerformanceTests", dependencies: ["LinkerSets", "LinkerSetsRuntime", "ExampleCatalog", "ExampleManyRecords", "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "LinkerSetsTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng"), .product(name: "Sampling", package: "swiftprng")], path: "Tests/LinkerSetsTests/Performance", exclude: testExcludes([], wasi: [])),
+    .testTarget(name: "LinkerSetsPerformanceTests", dependencies: ["LinkerSets", "LinkerSetsRuntime", "ExampleCatalog", "ExampleManyRecords", "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleSessions", "LinkerSetsTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng"), .product(name: "Sampling", package: "swiftprng")], path: "Tests/LinkerSetsTests/Performance", exclude: testExcludes([], wasi: [])),
 ]
 
 let package = Package(

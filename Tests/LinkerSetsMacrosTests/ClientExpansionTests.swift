@@ -142,15 +142,15 @@ struct ClientExpansionTests {
         assertMacroExpansion(
             source,
             expandedSource: expected,
-            diagnostics: [DiagnosticSpec(message: expectedMessage, line: 1, column: 1, severity: .note)],
+            diagnostics: [DiagnosticSpec(message: expectedMessage, line: 2, column: 11, severity: .note)],
             macroSpecs: ["Event": MacroSpec(type: ConformingEventMacro.self)],
             failureHandler: { Issue.record("\($0.message)") }
         )
     }
 
     @Test("refusal names a generic declaration's reason, and nil for one that can hold a record", arguments: [
-        ("@Probe\nstruct Box<T> {\n}", "struct Box<T> {\n}", "genericType", 1, 1),
-        ("@Probe\nfunc make<T>() -> T? { nil }", "func make<T>() -> T? { nil }", "genericFunction", 1, 1),
+        ("@Probe\nstruct Box<T> {\n}", "struct Box<T> {\n}", "genericType", 2, 11),
+        ("@Probe\nfunc make<T>() -> T? { nil }", "func make<T>() -> T? { nil }", "genericFunction", 2, 10),
         ("enum Settings {\n    @Probe\n    static let volume = 1\n}", "enum Settings {\n    static let volume = 1\n}", "recordable", 2, 5),
         ("enum Settings {\n    @Probe\n    let volume = 1\n}", "enum Settings {\n    let volume = 1\n}", "instanceMember", 2, 5),
     ] as [(String, String, String, Int, Int)])

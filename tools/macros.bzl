@@ -7,4 +7,5 @@ MACRO_PACKAGES = [
     "Sources/ExampleRoutesMacros",
     "Sources/ExampleMigrationsMacros",
     "Sources/ExampleEventsMacros",
+    "Sources/ExampleDiscoveryMacros",
 ]

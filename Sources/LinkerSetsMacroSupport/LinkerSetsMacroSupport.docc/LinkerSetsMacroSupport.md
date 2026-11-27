@@ -140,6 +140,60 @@ The package lists the module among both targets' dependencies:
 `.target(name: "Routes", dependencies: ["RoutesKind", "RoutesMacros", ...])`. SwiftPM builds it
 for the host for the plugin and for the target for the library.
 
+### Writing records without depending on LinkerSets
+
+A module that uses `@LinkerSetEntry` depends on LinkerSets, which builds LinkerSets' own plugin,
+LinkerSetsMacros, and swift-syntax with it. A module that only writes a few records, such as the
+events of one feature, can skip that. A client with a plugin of its own declares two macros there:
+an entry macro that takes the kind as an argument, as `@LinkerSetEntry` does, and a record macro
+of its own under a different name, which the entry macro's expansion calls in place of
+`#linkerSetRecord`:
+
+```swift
+// DiscoveryMacros, the plugin
+@main
+struct DiscoveryMacrosPlugin: CompilerPlugin {
+    let providingMacros: [any Macro.Type] = [DiscoverableMacro.self, DiscoverableRecordMacro.self]
+}
+
+public enum DiscoverableMacro: LinkerSetMacro {
+    public static func kind(of attribute: AttributeSyntax) throws -> UInt32 {
+        try kindArgument(of: attribute)
+    }
+
+    public static var recordMacroName: String { "discoverableRecord" }
+}
+
+public enum DiscoverableRecordMacro: DeclarationMacro {
+    public static func expansion(
+        of node: some FreestandingMacroExpansionSyntax,
+        in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        try LinkerSetRecordMacro.expansion(of: node, in: context)
+    }
+}
+```
+
+The library declares both and re-exports LinkerSetsRuntime, whose names the record uses:
+
+```swift
+// Discovery, the library
+@_exported import LinkerSetsRuntime
+
+@attached(peer)
+public macro Discoverable(kind: UInt32) = #externalMacro(module: "DiscoveryMacros", type: "DiscoverableMacro")
+
+@freestanding(declaration)
+public macro discoverableRecord<Value>(kind: UInt32, storing value: Value) = #externalMacro(module: "DiscoveryMacros", type: "DiscoverableRecordMacro")
+```
+
+A module that writes records then depends on `Discovery` and `LinkerSetsRuntime`, not on
+LinkerSets, and writes `@Discoverable(kind: 0x7365_7373)` where it would have written
+`@LinkerSetEntry(kind: 0x7365_7373)`. Its build holds the client's plugin, which already
+needs swift-syntax, and not LinkerSetsMacros. The record macro's name must differ from
+`linkerSetRecord`, because a module that imports both LinkerSets and the client couldn't choose
+between two macros of the same name.
+
 ### Testing the expansion
 
 A client's expansion tests pin one line per record, the `#linkerSetRecord` call:

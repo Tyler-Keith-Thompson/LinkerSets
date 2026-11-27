@@ -16,4 +16,7 @@ EXAMPLE_PACKAGES = [
     "Sources/ExampleRoutesKind",
     "Sources/ExampleManyRecords",
     "Sources/ExampleUnloadedPlugins",
+    "Sources/ExampleDiscovery",
+    "Sources/ExampleDiscoveryMacros",
+    "Sources/ExampleSessions",
 ]

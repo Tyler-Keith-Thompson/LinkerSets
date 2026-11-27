@@ -66,6 +66,17 @@ public protocol LinkerSetMacro: PeerMacro {
     /// - Returns: The protocol's name, or `nil`.
     /// - Throws: A diagnostic when the attribute doesn't give a protocol the macro can use.
     static func requiredConformance(of attribute: AttributeSyntax) throws -> TypeSyntax?
+
+    /// The name of the freestanding macro the record's peer calls, without the `#`:
+    /// `linkerSetRecord`, which the LinkerSets module declares, unless the client declares one of
+    /// its own.
+    ///
+    /// A client whose modules depend on LinkerSetsRuntime rather than LinkerSets, so that
+    /// LinkerSets' plugin and swift-syntax stay out of their builds, declares its own record macro,
+    /// `#routeRecord(kind:storing:)` say, implemented by a type in its plugin that calls
+    /// ``LinkerSetRecordMacro``'s expansion, and returns its name here. The name must differ from
+    /// `linkerSetRecord`: a module that imports both declarations couldn't tell them apart.
+    static var recordMacroName: String { get }
 }
 
 extension LinkerSetMacro {
@@ -73,6 +84,9 @@ extension LinkerSetMacro {
     public static func requiredConformance(of attribute: AttributeSyntax) throws -> TypeSyntax? {
         nil
     }
+
+    /// `linkerSetRecord`: LinkerSets' own record macro.
+    public static var recordMacroName: String { "linkerSetRecord" }
 
     /// The record that `declaration` becomes, as a peer:
     /// ``recordPeers(of:providingPeersOf:in:)``.
@@ -92,9 +106,9 @@ extension LinkerSetMacro {
     ///   - node: The attribute being expanded.
     ///   - declaration: The declaration it's attached to.
     ///   - context: The expansion's context.
-    /// - Returns: The record's declaration, a call of ``LinkerSetRecordMacro``
-    ///   (`#linkerSetRecord(kind: 0x726F7574, storing: Self.home)`), whose own expansion writes one
-    ///   declaration per object format.
+    /// - Returns: The record's declaration, a call of ``LinkerSetRecordMacro`` by
+    ///   ``recordMacroName`` (`#linkerSetRecord(kind: 0x726F7574, storing: Self.home)`), whose own
+    ///   expansion writes one declaration per object format.
     /// - Throws: The ``LinkerSetMacroDiagnostic/error`` of a refused kind or declaration, and
     ///   whatever ``kind(of:)`` or ``requiredConformance(of:)`` throws.
     public static func recordPeers(
@@ -113,7 +127,7 @@ extension LinkerSetMacro {
         }
         // The record itself is LinkerSets' own macro's expansion, so a client's expansion stays one
         // line however many object formats LinkerSets writes.
-        let call: DeclSyntax = "#linkerSetRecord(kind: \(raw: kind.hexadecimalLiteral), storing: \(value))"
+        let call: DeclSyntax = "#\(raw: recordMacroName)(kind: \(raw: kind.hexadecimalLiteral), storing: \(value))"
         guard !site.isMember else { return [call] }
         // At file scope the compiler drops the globals a freestanding macro declares inside a peer's
         // expansion, so a global's record is a member of a private enum of its own instead.
@@ -191,13 +205,13 @@ extension LinkerSetMacro {
         }
         if let function = declaration.as(FunctionDeclSyntax.self) {
             if isMember && !function.modifiers.isStatic { return refused(.instanceMember, at: function) }
-            guard function.genericParameterClause == nil else { return refused(.genericFunction, at: function) }
+            if let generics = function.genericParameterClause { return refused(.genericFunction, at: generics) }
             let reference: ExprSyntax = isMember ? "Self.\(raw: function.compoundName)" : "\(raw: function.compoundName)"
             let isMainActor = function.attributes.isMainActor || (enclosingIsMainActor && !function.modifiers.isNonisolated)
             return .value(isMainActor ? "\(reference) as @MainActor \(function.functionType)" : "\(reference) as \(function.functionType)")
         }
         if let type = NominalType(declaration) {
-            guard !type.isGeneric else { return refused(.genericType, at: declaration) }
+            if let generics = type.genericParameterClause { return refused(.genericType, at: generics) }
             let reference: ExprSyntax = isMember ? "Self.\(type.name).self" : "\(type.name).self"
             // The coercion is the conformance check: a type that doesn't conform fails to compile
             // here, at the attribute.
@@ -264,18 +278,21 @@ extension UInt32 {
 /// A struct, enum, class or actor declaration, which a record can hold as a metatype.
 private struct NominalType {
     let name: TokenSyntax
-    let isGeneric: Bool
+    /// The type's generic parameters, `<T>`, or `nil` for a type that has none.
+    let genericParameterClause: GenericParameterClauseSyntax?
+
+    var isGeneric: Bool { genericParameterClause != nil }
 
     /// The type `declaration` declares, or `nil` when it declares none of the four.
     init?(_ declaration: some SyntaxProtocol) {
         if let decl = declaration.as(StructDeclSyntax.self) {
-            (name, isGeneric) = (decl.name.trimmed, decl.genericParameterClause != nil)
+            (name, genericParameterClause) = (decl.name.trimmed, decl.genericParameterClause)
         } else if let decl = declaration.as(EnumDeclSyntax.self) {
-            (name, isGeneric) = (decl.name.trimmed, decl.genericParameterClause != nil)
+            (name, genericParameterClause) = (decl.name.trimmed, decl.genericParameterClause)
         } else if let decl = declaration.as(ClassDeclSyntax.self) {
-            (name, isGeneric) = (decl.name.trimmed, decl.genericParameterClause != nil)
+            (name, genericParameterClause) = (decl.name.trimmed, decl.genericParameterClause)
         } else if let decl = declaration.as(ActorDeclSyntax.self) {
-            (name, isGeneric) = (decl.name.trimmed, decl.genericParameterClause != nil)
+            (name, genericParameterClause) = (decl.name.trimmed, decl.genericParameterClause)
         } else {
             return nil
         }

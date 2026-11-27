@@ -137,7 +137,7 @@ struct TypeExpansionTests {
         assertMacroExpansion(
             source,
             expandedSource: expected,
-            diagnostics: [DiagnosticSpec(message: "'@Event' cannot apply to a generic type: a record holds one concrete type", line: 1, column: 1)],
+            diagnostics: [DiagnosticSpec(message: "'@Event' cannot apply to a generic type: a record holds one concrete type", line: 2, column: 14)],
             macroSpecs: ["Event": MacroSpec(type: EventMacro.self)],
             failureHandler: { Issue.record("\($0.message)") }
         )

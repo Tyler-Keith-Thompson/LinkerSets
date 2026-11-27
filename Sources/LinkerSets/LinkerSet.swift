@@ -18,6 +18,13 @@
 /// A kind no record was declared with gives an empty set, as does kind 0, which marks an empty
 /// slot.
 ///
+/// Records survive dead stripping (`-dead_strip`, `--gc-sections`) in debug and release builds:
+/// each is `@used`, and the section is retained. A record reaches the program only when the
+/// linker links its module's object file, though. SwiftPM links every object of a target's
+/// dependencies, and so does Bazel's `swift_library`, which is `alwayslink` by default. A build
+/// that links a static archive's members only on demand drops a module that nothing references
+/// by name. Link such a module whole (`-force_load` on Mach-O, `--whole-archive` on ELF).
+///
 /// Reading never traps. A record whose reserved fields aren't zero, written by a newer layout, is
 /// skipped; a section whose size isn't a whole number of records is read up to its last whole
 /// record.

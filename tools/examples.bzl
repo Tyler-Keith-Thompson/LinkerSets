@@ -6,6 +6,7 @@ EXAMPLE_PACKAGES = [
     "Sources/ExampleRoutes",
     "Sources/ExampleMigrations",
     "Sources/ExampleEvents",
+    "Sources/ExamplePlugins",
     "Sources/ExampleRoutesMacros",
     "Sources/ExampleMigrationsMacros",
     "Sources/ExampleEventsMacros",

@@ -115,6 +115,7 @@ MODULES = [
     # Examples
     ("ExampleRoutes", "Examples", "A client of LinkerSets: the routes kind and its @Route macro, with routes declared by it.", ["LinkerSets", "ExampleRoutesMacros"]),
     ("ExampleMigrations", "Examples", "A second client of LinkerSets: the migrations kind and its @Migration macro, with migrations declared by it.", ["LinkerSets", "ExampleMigrationsMacros"]),
+    ("ExamplePlugins", "Examples", "A client of LinkerSets whose records nothing references: plug-in types found by their kind alone.", ["LinkerSets"]),
     ("ExampleEvents", "Examples", "A client of LinkerSets that registers types: the events kind, the AnalyticsEvent protocol its @Event macro requires, and events declared by it.", ["LinkerSets", "ExampleEventsMacros"]),
 ]
 
@@ -131,7 +132,7 @@ IOS_MINIMUM = "18.0"
 # so neither they nor their dependencies ship in `import LinkerSets`. Only executables, test
 # targets and other example modules may depend on one. A compiler plugin (MACROS) an example module
 # uses is listed here too: plugins ship nothing anyway, and the listing lets only examples use it.
-EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros"]
+EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros"]
 
 # Modules offered as products of their own but left out of the umbrella, by name from MODULES:
 # ones an adopter imports on purpose rather than with `import LinkerSets`, such as a test-support
@@ -222,7 +223,7 @@ EXECUTABLES = [
 # Test targets. SwiftPM rejects a target with no sources, so list a target only once its directory
 # holds tests. (name, dependencies)
 TEST_TARGETS = [
-    (f"{PROJECT}Tests", [PROJECT, "ExampleRoutes", "ExampleMigrations", "ExampleEvents", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
+    (f"{PROJECT}Tests", [PROJECT, "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
     ("LinkerSetsMacrosTests", ["LinkerSetsMacros", "ExampleRoutesMacros", "ExampleEventsMacros", "LinkerSetsMacroSupport", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
 ]
 
@@ -245,6 +246,9 @@ TEST_SIZES = {name: "medium" for name in [
 # out under release. Debug runs both. A `.timeLimit` that only guards a small input against a hang
 # does not make a test speed-reliant.
 PERFORMANCE_TESTS = [
+    # Not speed-reliant: the linking tests, which must run in release builds too, where the linker
+    # dead-strips the test binary (Performance/LinkingTests.swift).
+    f"{PROJECT}Tests",
 ]
 
 # Performance tests run up to their one-minute limits each, so their targets get "medium" (300 s).

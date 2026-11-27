@@ -53,10 +53,12 @@ def swift_library(name, features = [], copts = [], **kwargs):
         **kwargs
     )
 
-# Linux tests link with --gc-sections, as release builds of a program do, so every test there
-# proves that the records in LinkerSets' ELF section survive section garbage collection.
+# Tests link the way release builds of a program do, dead-stripping what nothing references:
+# --gc-sections on Linux, -dead_strip on macOS. So every test binary, debug and release, proves
+# that the records in LinkerSets' section survive.
 _TEST_LINKOPTS = select({
     "@platforms//os:linux": ["-Wl,--gc-sections"],
+    "@platforms//os:macos": ["-Wl,-dead_strip"],
     "//conditions:default": [],
 })
 

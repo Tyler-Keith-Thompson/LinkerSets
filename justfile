@@ -86,6 +86,10 @@ mutate module *args="":
 wasi-test *args="":
     python3 -u {{PROJECT_ROOT}}/scripts/wasi_test.py {{args}}
 
+[doc('SwiftPM tests on Android (aarch64), built with the Swift SDK for Android and run on a booted emulator or device through adb, e.g. just android-test -c release')]
+android-test *args="":
+    python3 -u {{PROJECT_ROOT}}/scripts/android_test.py {{args}}
+
 [doc('xcodebuild the package for watchOS devices (arm64_32) and test it on the tvOS, watchOS and visionOS simulators and Mac Catalyst, e.g. just apple-test --platforms tvOS,watchOS')]
 apple-test *args="":
     python3 -u {{PROJECT_ROOT}}/scripts/apple_test.py {{args}}

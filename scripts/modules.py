@@ -74,8 +74,14 @@ APPLE_ONLY_TESTS = []
 # its swift_test on the Mac (and Linux), and gains `<name>Simulator`, an ios_unit_test of the same
 # test library hosted by tools/test_host, which Bazel runs on macOS alone. A target that depends on
 # an iOS module or a Bazel label runs in the simulator alone already and isn't listed. Needs the
-# test host and .bazelrc's simulator settings, which the app type, --ios and --simulator ship.
-SIMULATOR_TESTS = []
+# test host and .bazelrc's simulator settings, which the app type, --ios and --simulator ship. A
+# target in PERFORMANCE_TESTS runs its debug tests there; its Performance/ target stays on the Mac
+# (and Linux), as speed bounds mean little in a simulator sharing the Mac with a build.
+SIMULATOR_TESTS = [
+    # No UIKit code: the Mach-O reader must find the records inside an app's bundle (tools/test_host),
+    # where the tests are a loaded .xctest image rather than the main executable.
+    f"{PROJECT}Tests",
+]
 
 # Environment variables a test target's tests read, by test target name: Bazel runs a test with
 # almost none of the caller's environment, so each name listed is handed through to that target's
@@ -658,7 +664,9 @@ def check():
             f"the command plugin {name} has no Swift sources in Plugins/{name}"
     for name in PERFORMANCE_TESTS:
         assert name in tests, f"PERFORMANCE_TESTS names unknown test target {name}"
-        assert not simulator_test(name), f"{name} runs in the simulator, which PERFORMANCE_TESTS doesn't support"
+        # A SIMULATOR_TESTS target's simulator half takes the debug sources alone (test_build_bazel).
+        assert not simulator_only(name), \
+            f"{name} runs in the simulator alone, which PERFORMANCE_TESTS doesn't support"
     for name in IOS_MODULES:
         assert name in names, f"IOS_MODULES names unknown module {name}"
     for name in EXAMPLE_MODULES:

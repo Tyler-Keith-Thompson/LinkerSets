@@ -73,7 +73,9 @@ in beside the project's own: keep one definition, holding the project's rows, an
   test must run on the Mac, since Bazel's runner fails a run of none; a target whose Mac tests are
   Apple's alone goes in `APPLE_ONLY_TESTS` too. A target that depends on an iOS module or a Bazel
   label runs in the simulator alone already, so it isn't listed.
-  `just mutate` runs a spec's simulator targets through Bazel (`scripts/mutate.py`).
+  `just mutate` runs a spec's simulator targets through Bazel (`scripts/mutate.py`). A target in
+  `PERFORMANCE_TESTS` takes only its debug tests into the simulator; its `Performance/` target
+  runs on the Mac and Linux alone.
 - Add an iOS app to this project: from the project template's checkout,
   `./template.py add <project> --ios` (after `just template-update`, if the stamp predates the
   option). It brings `Apps/LinkerSets`, whose screens are iOS modules; the test host, the

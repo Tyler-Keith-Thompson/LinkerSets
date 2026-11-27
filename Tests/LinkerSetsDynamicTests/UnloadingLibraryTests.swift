@@ -16,7 +16,6 @@ import Glibc
 import Musl
 #endif
 import LinkerSets
-import Synchronization
 import Testing
 
 /// Records of this test program's own, kind "dyn4", which every read must find while the library
@@ -37,9 +36,8 @@ struct UnloadingLibraryTests {
         let expectedCounts: Set<Int> = [2]
         let path = try #require(unloadedLibraryPath())
         let rounds = 100
-        let finished = Atomic(false)
+        let reads = 2_000
         let loader = Task.detached {
-            defer { finished.store(true, ordering: .releasing) }
             for _ in 0..<rounds {
                 guard let handle = dlopen(path, RTLD_NOW) else { return false }
                 dlclose(handle)
@@ -48,12 +46,13 @@ struct UnloadingLibraryTests {
         }
         var actualCounts: Set<Int> = []
 
-        repeat {
+        // Each side does a fixed amount of work rather than the reads lasting until the loader is
+        // done: a read holds the loader's lock on Linux, which isn't fair, so back-to-back reads
+        // could keep dlopen waiting for minutes.
+        for _ in 0..<reads {
             actualCounts.insert(sut.records.count)
-            // A read holds the loader's lock on Linux, which isn't fair: without a yield, back-to-back
-            // reads can keep dlopen waiting for minutes.
             sched_yield()
-        } while !finished.load(ordering: .acquiring)
+        }
 
         let opened = await loader.value
         #expect(opened, "dlopen(\(path)) failed")

@@ -8,9 +8,11 @@ CI builds, so a stale manifest would pass unnoticed and only SwiftPM users would
 analyzed graph (through an aspect, so nothing is compiled), writes them as one line per module,
 and compares that with the same lines pulled out of Package.swift's `.target`, `.executableTarget`,
 `.macro` and `.testTarget` entries. A missing target, an extra one or a different dependency list
-fails the test. It also compares the manifest's `.library` products with the modules Bazel says the package
-offers, so a product dropped from or added to the list fails it too. Command plugins (`.plugin`
-targets and products, PLUGINS in scripts/modules.py) are SwiftPM's alone, so neither side has them.
+fails the test. It also compares the manifest's `.library` products with the modules Bazel says the
+package offers, so a product dropped from or added to the list fails it too, and its
+`.library(type: .dynamic)` products with the modules Bazel builds as shared libraries
+(SHARED_LIBRARIES in scripts/modules.py). Command plugins (`.plugin` targets and products, PLUGINS
+in scripts/modules.py) are SwiftPM's alone, so neither side has them.
 
 Each target's `resources:` entries (RESOURCES in scripts/modules.py) are compared too, rule and path,
 with the entries of the `module_resources` target (tools/resources.bzl) in the module's `data`: a
@@ -148,7 +150,13 @@ grep -E '^ *\\.(target|executableTarget|testTarget|macro)\\(name: "' "$manifest"
 done | LC_ALL=C sort > "$actual"
 products="$3"
 offered="${TEST_TMPDIR:-/tmp}/offered.txt"
-grep -oE '^ *\\.library\\(name: "[^"]*"' "$manifest" | sed -E 's/.*name: "([^"]*)"/\\1/' | LC_ALL=C sort > "$offered"
+grep -E '^ *\\.library\\(name: "' "$manifest" | grep -v 'type: \\.dynamic' | grep -oE '^ *\\.library\\(name: "[^"]*"' \\
+    | sed -E 's/.*name: "([^"]*)"/\\1/' | LC_ALL=C sort > "$offered"
+# The `.library(type: .dynamic)` products, the modules also built as shared libraries.
+shared="$7"
+dynamic="${TEST_TMPDIR:-/tmp}/dynamic.txt"
+grep -E '^ *\\.library\\(name: "[^"]*", type: \\.dynamic' "$manifest" | sed -E 's/^ *\\.library\\(name: "([^"]*)".*/\\1/' \\
+    | LC_ALL=C sort > "$dynamic"
 resources="${TEST_TMPDIR:-/tmp}/resources.txt"
 bundled="${TEST_TMPDIR:-/tmp}/bundled.txt"
 LC_ALL=C sort "$4" > "$resources"
@@ -231,6 +239,11 @@ if ! diff -u "$products" "$offered"; then
     echo "Package.swift's library products differ from the modules the package offers (- Bazel, + Package.swift)."
     status=1
 fi
+if ! diff -u "$shared" "$dynamic"; then
+    echo
+    echo "Package.swift's dynamic library products differ from the shared libraries Bazel builds (- Bazel, + Package.swift)."
+    status=1
+fi
 if ! diff -u "$resources" "$bundled"; then
     echo
     echo "Package.swift's resources differ from the module_resources targets (- Bazel, + Package.swift)."
@@ -269,28 +282,35 @@ def _swiftpm_manifest_test_impl(ctx):
     listing = depset(transitive = [module[_ModuleDependencies].sources for module in ctx.attr.modules])
     ctx.actions.write(sources, "".join([entry + "\n" for entry in listing.to_list()]))
     source_files = depset(transitive = [module[_ModuleDependencies].source_files for module in ctx.attr.modules])
+    shared = ctx.actions.declare_file(ctx.label.name + ".shared.txt")
+    # A shared library's module is its package's: //Sources/<Module>:SharedLibrary.
+    modules = sorted([library.label.package.split("/")[-1] for library in ctx.attr.shared_libraries])
+    ctx.actions.write(shared, "".join([module + "\n" for module in modules]))
     checker = ctx.actions.declare_file(ctx.label.name + ".check.sh")
     ctx.actions.write(checker, _SCRIPT, is_executable = True)
     runner = ctx.actions.declare_file(ctx.label.name + ".sh")
     ctx.actions.write(
         runner,
-        '#!/bin/sh\nexec "{}" "{}" "{}" "{}" "{}" "{}" "{}"\n'.format(checker.short_path, ctx.file.manifest.short_path, expected.short_path, products.short_path, resources.short_path, sources.short_path, features.short_path),
+        '#!/bin/sh\nexec "{}" "{}" "{}" "{}" "{}" "{}" "{}" "{}"\n'.format(checker.short_path, ctx.file.manifest.short_path, expected.short_path, products.short_path, resources.short_path, sources.short_path, features.short_path, shared.short_path),
         is_executable = True,
     )
     return [DefaultInfo(
         executable = runner,
-        runfiles = ctx.runfiles(files = [checker, expected, products, resources, sources, features, ctx.file.manifest], transitive_files = source_files),
+        runfiles = ctx.runfiles(files = [checker, expected, products, resources, sources, features, shared, ctx.file.manifest], transitive_files = source_files),
     )]
 
 swiftpm_manifest_test = rule(
     implementation = _swiftpm_manifest_test_impl,
-    doc = "Fails when Package.swift's targets, dependencies, resources, language features, library products or exit-test exclusions differ from the Bazel graph's.",
+    doc = "Fails when Package.swift's targets, dependencies, resources, language features, library products, shared libraries or exit-test exclusions differ from the Bazel graph's.",
     attrs = {
         "manifest": attr.label(allow_single_file = True, mandatory = True),
         "modules": attr.label_list(aspects = [_module_dependencies_aspect], mandatory = True),
         "products": attr.label_list(
             aspects = [_module_dependencies_aspect],
             doc = "The modules Package.swift offers as `.library` products.",
+        ),
+        "shared_libraries": attr.label_list(
+            doc = "Each module's `:SharedLibrary` (tools/shared_library.bzl), a `.library(type: .dynamic)` product in Package.swift.",
         ),
     },
     test = True,

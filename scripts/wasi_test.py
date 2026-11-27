@@ -41,6 +41,9 @@ SCRATCH = os.path.join(ROOT, ".build", "wasm")
 def all_targets():
     names = []
     for name, _ in modules.TEST_TARGETS:
+        # WASI has no shared libraries to link or open, and Package.swift declares none for it.
+        if name in modules.shared_library_tests():
+            continue
         names.append(name)
         if name in modules.PERFORMANCE_TESTS:
             names.append(modules.performance_target(name))

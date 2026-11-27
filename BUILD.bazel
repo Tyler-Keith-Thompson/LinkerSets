@@ -7,6 +7,7 @@ load("//tools:executables.bzl", "EXECUTABLE_PACKAGES")
 load("//tools:macros.bzl", "MACRO_PACKAGES")
 load("//tools:ios.bzl", "IOS_PACKAGES", "SIMULATOR_TEST_PACKAGES")
 load("//tools:performance_tests.bzl", "PERFORMANCE_TEST_PACKAGES")
+load("//tools:shared_libraries.bzl", "SHARED_LIBRARY_PACKAGES")
 load("//tools:swiftpm.bzl", "swiftpm_manifest_test")
 
 APP_TARGETS = []
@@ -135,4 +136,7 @@ swiftpm_manifest_test(
         for package in sorted(subpackages(include = ["Sources/*"]))
         if package not in IOS_PACKAGES and package not in EXECUTABLE_PACKAGES and package not in EXAMPLE_PACKAGES and package not in MACRO_PACKAGES
     ],
+    # The modules also built as shared libraries, Package.swift's `.library(type: .dynamic)`
+    # products (SHARED_LIBRARIES in scripts/modules.py).
+    shared_libraries = ["//" + package + ":SharedLibrary" for package in SHARED_LIBRARY_PACKAGES],
 )

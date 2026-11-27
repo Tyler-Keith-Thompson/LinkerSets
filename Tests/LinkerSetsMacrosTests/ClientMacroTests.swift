@@ -25,13 +25,18 @@ struct ClientMacroTests {
                 static let home = Endpoint(path: "/")
 
                 #if objectFormat(MachO)
-                @section("__DATA_CONST,__linker_sets")
-                #elseif objectFormat(ELF)
-                @section("linker_sets")
-                #endif
-                @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x726F7574, 0, { outValue, type, _, _ in
+                @section("__DATA_CONST,__linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x726F7574, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
                     }, 0, 0)
+                #elseif objectFormat(ELF) && _pointerBitWidth(_64)
+                @section(".note.linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Note = (11, 32, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x726F7574, 0, { outValue, type, _, _ in
+                            LinkerSets.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
+                        }, 0, 0))
+                #elseif objectFormat(ELF) && _pointerBitWidth(_32)
+                @section(".note.linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x726F7574, 0, { outValue, type, _, _ in
+                            LinkerSets.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
+                        }, 0, 0))
+                #endif
             }
             """
 

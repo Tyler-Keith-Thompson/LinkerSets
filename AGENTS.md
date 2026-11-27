@@ -14,8 +14,10 @@ library's own section and never depends on Swift Testing or its underscored disc
 It optimizes for discovery that cannot break. It works on macOS, iOS, tvOS, watchOS (including the
 32-bit arm64_32), visionOS, Mac Catalyst, Linux, Android, Windows, FreeBSD and WASI, and on each it
 uses only the format's documented mechanisms: Mach-O sections through the loader's image list and
-`getsectiondata`, ELF and WebAssembly sections through linker-defined `__start_`/`__stop_` symbols,
-COFF through grouped sections (`$A`/`$M`/`$Z`). It must survive release builds, dead stripping,
+`getsectiondata`, ELF records as notes in a `PT_NOTE` segment found through `dl_iterate_phdr`
+(which sees every loaded image, where `__start_`/`__stop_` symbols bound only their own),
+WebAssembly sections through linker-defined `__start_`/`__stop_` symbols, COFF through grouped
+sections (`$A`/`$M`/`$Z`). It must survive release builds, dead stripping,
 static and dynamic linking, and code loaded later (`dlopen`), with a test for each. It never scans
 Swift's runtime metadata (conformance or type metadata records), uses build plugins that scan
 source text, looks up symbols by name with `dlsym`, or calls Apple private API. A platform where
@@ -98,6 +100,19 @@ in beside the project's own: keep one definition, holding the project's rows, an
   name in `EXAMPLE_MODULES`, then `just modules`. It builds and tests like any module, but has no
   library product, umbrella import or DocC archive, so neither it nor its dependencies ship. Only
   executables, test targets and other example modules may depend on it (`check()` enforces it).
+- Build an example module as a shared library too, for a test of code in an image of its own: its
+  name in `SHARED_LIBRARIES`, then `just modules`. It becomes `lib<Module>.dylib` on macOS and
+  `lib<Module>.so` on Linux, the module and everything it depends on: a `.library(type: .dynamic)`
+  product in Package.swift, which the WebAssembly run leaves out, and a `swift_shared_library`
+  (`tools/shared_library.bzl`) in its package, compared by `//:package_swift_test`. A test target
+  that opens it with `dlopen` lists it in `LOADED_SHARED_LIBRARIES` (`{"<Target>": ["<Module>"]}`):
+  under Bazel it is in the test's runfiles, at `Sources/<Module>/lib<Module>.<ext>` under
+  `$TEST_SRCDIR/$TEST_WORKSPACE`; under SwiftPM it sits beside the test bundle or binary. A test
+  target that links it at launch lists it in `LINKED_SHARED_LIBRARIES` and keeps those tests in
+  `Tests/<Target>/LinkedSharedLibraries/`, which only Bazel builds: SwiftPM links a package's own
+  targets into its tests statically and can't order a test's link after its own product's. Neither
+  test target names the module among its dependencies, which would link its records into the test
+  program too, and `check()` refuses one that does. `just wasi-test` skips both kinds of target.
 - Offer a module on its own but not through `import LinkerSets` (a test-support back end, such as
   an in-memory store adopters use in their tests): its name in `NON_UMBRELLA_MODULES` too, then
   `just modules`. It keeps its library product and DocC archive; only the umbrella leaves it out.

@@ -51,6 +51,34 @@ public struct LinkerSetRecord {
         reserved2: UInt
     )
 
+    /// A record as a macro writes it in an ELF image: the record, wrapped in an ELF note.
+    ///
+    /// In an ELF image the records sit in the note section `.note.linker_sets`, which the linker
+    /// covers with a `PT_NOTE` program header, so ``LinkerSet`` finds each loaded image's records
+    /// through `dl_iterate_phdr`, a shared library's and a `dlopen`ed one's included. Each note
+    /// has the standard header: `nameSize` 11 and `name` `"LinkerSets"` with its terminating
+    /// zero, padded to 12 bytes; `descriptorSize`, the size of a record (32 bytes where pointers
+    /// are 64 bits, 20 where they are 32); and `type` 1. The record follows as the descriptor:
+    ///
+    /// ```swift
+    /// let note: LinkerSetRecord.Note = (11, 32, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0),
+    ///                                   (0x726F_7574, 0, { outValue, type, hint, reserved in false }, 0, 0))
+    /// ```
+    ///
+    /// The 24-byte header keeps the record at its own alignment, whether a reader aligns notes to
+    /// 4 bytes or to 8.
+    // A note rather than a plain section bounded by __start_/__stop_ symbols: those bound only the
+    // image whose code takes their address, so a shared library's records would need code of the
+    // library's own to report them. A note segment is visible in every loaded image's program
+    // headers.
+    public typealias Note = (
+        nameSize: UInt32,
+        descriptorSize: UInt32,
+        type: UInt32,
+        name: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8),
+        record: Literal
+    )
+
     /// The client this record belongs to.
     public let kind: LinkerSetKind
     @usableFromInline let reserved1: UInt32

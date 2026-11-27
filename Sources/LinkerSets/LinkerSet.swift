@@ -2,19 +2,23 @@
 /// Every record of one kind, across every image the program has loaded, and the values they
 /// produce.
 ///
-/// Records are declared at compile time as `@used` globals in the section LinkerSets owns
-/// (`@section("__DATA_CONST,__linker_sets")` in a Mach-O image, `@section("linker_sets")` in an
-/// ELF one), each a ``LinkerSetRecord/Literal``. A linker set finds them at run time: on Apple
-/// platforms through the loader's list of images, and on ELF platforms (Linux, Android, FreeBSD)
-/// between the section's linker-defined `__start_linker_sets` and `__stop_linker_sets` symbols,
-/// which bound the records of the statically linked program:
+/// Records are declared at compile time as `@used` globals in the section LinkerSets owns. In a
+/// Mach-O image that is `__DATA_CONST,__linker_sets`, each record a ``LinkerSetRecord/Literal``.
+/// In an ELF image it is the note section `.note.linker_sets`, each record wrapped in a
+/// ``LinkerSetRecord/Note``. A linker set finds them at run time in every image the loader has
+/// mapped: the program, the shared libraries it was linked with, and any loaded later with
+/// `dlopen`. On Apple platforms it reads each image's section through the loader's list of
+/// images; on ELF platforms (Linux, Android, FreeBSD) it reads each image's note segments
+/// through `dl_iterate_phdr`:
 ///
 /// ```swift
 /// let routes = LinkerSet<Route>(kind: .routes).values
 /// ```
 ///
+/// Each read asks the loader again, so a read after a `dlopen` includes the new image's records.
 /// Records come back image by image in the loader's order, and within an image in the order the
-/// linker laid them out, so two reads in one process return the same records in the same order.
+/// linker laid them out, so two reads with no load between them return the same records in the
+/// same order.
 /// A kind no record was declared with gives an empty set, as does kind 0, which marks an empty
 /// slot.
 ///
@@ -27,7 +31,8 @@
 ///
 /// Reading never traps. A record whose reserved fields aren't zero, written by a newer layout, is
 /// skipped; a section whose size isn't a whole number of records is read up to its last whole
-/// record.
+/// record; on ELF, a note that isn't LinkerSets', or whose record size this version doesn't know,
+/// is skipped.
 public struct LinkerSet<Value>: Sendable {
     /// The kind of record this set holds.
     public let kind: LinkerSetKind

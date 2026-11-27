@@ -7,13 +7,23 @@
 import Testing
 
 #if objectFormat(MachO)
-@section("__DATA_CONST,__linker_sets")
-#elseif objectFormat(ELF)
-@section("linker_sets")
-#endif
-@used private let newerLayoutRecord: LinkerSetRecord.Literal = (0x6C73_7631, 1, { outValue, type, _, _ in
+@section("__DATA_CONST,__linker_sets") @used
+private let newerLayoutRecord: LinkerSetRecord.Literal = (0x6C73_7631, 1, { outValue, type, _, _ in
     LinkerSetRecord.__store(42, into: outValue, ifAsked: type)
 }, 0, 0)
+#elseif objectFormat(ELF) && _pointerBitWidth(_64)
+// The note around the record, as LinkerSetRecord.Note documents: name "LinkerSets", type 1, and
+// the record's size, 32 bytes where pointers are 64 bits and 20 where they are 32.
+@section(".note.linker_sets") @used
+private let newerLayoutRecord: LinkerSetRecord.Note = (11, 32, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x6C73_7631, 1, { outValue, type, _, _ in
+    LinkerSetRecord.__store(42, into: outValue, ifAsked: type)
+}, 0, 0))
+#elseif objectFormat(ELF)
+@section(".note.linker_sets") @used
+private let newerLayoutRecord: LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x6C73_7631, 1, { outValue, type, _, _ in
+    LinkerSetRecord.__store(42, into: outValue, ifAsked: type)
+}, 0, 0))
+#endif
 
 @Suite("LinkerSet: records of an unknown version")
 struct UnknownVersionEnumerationTests {

@@ -27,6 +27,14 @@ let products: [Product] = [
     .library(name: "LinkerSetsMacroSupport", targets: ["LinkerSetsMacroSupport"]),
 ]
 
+// Example modules also built as shared libraries, lib<Name>.dylib or lib<Name>.so beside the test
+// products, for the tests that link or open them (SHARED_LIBRARIES in scripts/modules.py). WASI
+// has no shared libraries, so the WebAssembly test run declares none.
+let sharedLibraries: [Product] = wasiTests != nil ? [] : [
+    .library(name: "ExampleDynamicPlugins", type: .dynamic, targets: ["ExampleDynamicPlugins"]),
+    .library(name: "ExampleLoadedPlugins", type: .dynamic, targets: ["ExampleLoadedPlugins"]),
+]
+
 let dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/x-sheep/swift-property-based", from: "2.0.1"),
     .package(url: "https://github.com/Tyler-Keith-Thompson/SwiftPRNG", from: "0.0.1"),
@@ -42,6 +50,8 @@ let targets: [Target] = [
     .target(name: "ExampleMigrations", dependencies: ["LinkerSets", "ExampleMigrationsMacros"], exclude: bazelFiles),
     .target(name: "ExamplePlugins", dependencies: ["LinkerSets"], exclude: bazelFiles),
     .target(name: "ExampleEvents", dependencies: ["LinkerSets", "ExampleEventsMacros"], exclude: bazelFiles),
+    .target(name: "ExampleDynamicPlugins", dependencies: ["LinkerSets"], exclude: bazelFiles),
+    .target(name: "ExampleLoadedPlugins", dependencies: ["LinkerSets"], exclude: bazelFiles),
     // Discovery: compiler plugin
     .macro(name: "LinkerSetsMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
     // Examples: compiler plugin
@@ -55,6 +65,7 @@ let targets: [Target] = [
     .target(name: "LinkerSetsTestSupport", path: "Tests/LinkerSetsTestSupport", exclude: bazelFiles),
 
     .testTarget(name: "LinkerSetsTests", dependencies: ["LinkerSets", "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "LinkerSetsTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng"), .product(name: "Sampling", package: "swiftprng")], exclude: testExcludes(["BUILD.bazel", "Performance"], wasi: [])),
+    .testTarget(name: "LinkerSetsDynamicTests", dependencies: ["LinkerSets"], exclude: testExcludes(["BUILD.bazel", "LinkedSharedLibraries"], wasi: []), swiftSettings: [.enableExperimentalFeature("Extern")]),
     .testTarget(name: "LinkerSetsMacrosTests", dependencies: ["LinkerSetsMacros", "ExampleRoutesMacros", "ExampleEventsMacros", "LinkerSetsMacroSupport", .product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"), .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax")], exclude: testExcludes(bazelFiles, wasi: [])),
 
     // Speed-reliant tests, split from the target of the same module (PERFORMANCE_TESTS in scripts/modules.py).
@@ -65,7 +76,7 @@ let package = Package(
     name: "LinkerSets",
     // Keep in step with .bazelrc's --macos_minimum_os.
     platforms: [.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)],
-    products: products,
+    products: products + sharedLibraries,
     dependencies: dependencies,
     targets: targets.filter { $0.type != .test || wasiTests?.contains($0.name) ?? true }
 )

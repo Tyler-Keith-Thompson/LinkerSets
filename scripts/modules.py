@@ -3,7 +3,7 @@
 
 Package.swift, swift/Package.swift, every Sources/*/BUILD.bazel and Tests/*/BUILD.bazel, the
 umbrella module, tools/performance_tests.bzl, tools/executables.bzl, tools/examples.bzl,
-tools/ios.bzl (the iOS modules and simulator tests),
+tools/ios.bzl (the iOS modules and simulator tests), tools/shared_libraries.bzl,
 tools/macros.bzl and tools/swift_version.bzl are generated from the tables below, so SwiftPM
 and Bazel cannot drift. Run `just modules` after editing them. `//:package_swift_test` fails when
 Package.swift disagrees with the Bazel graph.
@@ -98,7 +98,7 @@ TEST_ENVIRONMENT = {}
 # its dependents. A release compiler refuses an experimental feature not marked as available in
 # production, so build with Xcode's toolchain, not only a development snapshot, after adding one.
 # {"Greetings": ["Extern"]}, {"GreetingsTests": ["ExistentialAny"]}
-EXPERIMENTAL_FEATURES = {"LinkerSets": ["Extern"]}
+EXPERIMENTAL_FEATURES = {"LinkerSets": ["Extern"], "LinkerSetsDynamicTests": ["Extern"]}
 UPCOMING_FEATURES = {}
 
 # The product whose macro generates mocks. A module that depends on it is compiled with the
@@ -117,6 +117,8 @@ MODULES = [
     ("ExampleMigrations", "Examples", "A second client of LinkerSets: the migrations kind and its @Migration macro, with migrations declared by it.", ["LinkerSets", "ExampleMigrationsMacros"]),
     ("ExamplePlugins", "Examples", "A client of LinkerSets whose records nothing references: plug-in types found by their kind alone.", ["LinkerSets"]),
     ("ExampleEvents", "Examples", "A client of LinkerSets that registers types: the events kind, the AnalyticsEvent protocol its @Event macro requires, and events declared by it.", ["LinkerSets", "ExampleEventsMacros"]),
+    ("ExampleDynamicPlugins", "Examples", "Records in a shared library the test program links at launch, an image of its own.", ["LinkerSets"]),
+    ("ExampleLoadedPlugins", "Examples", "Records in a shared library the test program opens with dlopen, in the process only once loaded.", ["LinkerSets"]),
 ]
 
 # Modules only iOS builds: SwiftUI views and what they draw with. Bazel builds them for the
@@ -132,7 +134,38 @@ IOS_MINIMUM = "18.0"
 # so neither they nor their dependencies ship in `import LinkerSets`. Only executables, test
 # targets and other example modules may depend on one. A compiler plugin (MACROS) an example module
 # uses is listed here too: plugins ship nothing anyway, and the listing lets only examples use it.
-EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros"]
+EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros", "ExampleDynamicPlugins", "ExampleLoadedPlugins"]
+
+# Example modules also built as shared libraries, by name from EXAMPLE_MODULES: fixtures for tests
+# of code that sits in an image of its own, a library the program links at launch or opens with
+# dlopen. Each is lib<name>.dylib on macOS and lib<name>.so on Linux, holding the module and
+# everything it depends on. Package.swift gets a `.library(type: .dynamic)` product, which SwiftPM
+# builds beside the test products, and declares none for the WebAssembly test run, as WASI has no
+# shared libraries. Bazel gets a swift_shared_library (tools/shared_library.bzl) beside the
+# module's swift_library, on macOS and Linux alone, and //:package_swift_test compares the two.
+# A test target uses one through LINKED_SHARED_LIBRARIES or LOADED_SHARED_LIBRARIES, never among
+# its dependencies, which would link the module into the test program and its records with it.
+SHARED_LIBRARIES = ["ExampleDynamicPlugins", "ExampleLoadedPlugins"]
+
+# Shared libraries (SHARED_LIBRARIES) a test target links at launch, by test target name: the
+# program records each as a library it needs, so the loader maps it before the tests run. Bazel
+# alone can: the library's `:LinkedSharedLibrary` goes in the swift_test's `deps`, which puts it on
+# the test's run path too. SwiftPM links a package's own targets into its tests statically and
+# gives a test no dependency on its own package's products, and `.linkedLibrary` names no
+# dependency, so the test's link races the library's and fails on a clean build. So the tests that
+# need these libraries live in the target's LinkedSharedLibraries/ directory, which Package.swift
+# leaves out; the rest of the target runs under both. The tests don't import the module, which
+# SwiftPM couldn't give them either.
+LINKED_SHARED_LIBRARIES = {"LinkerSetsDynamicTests": ["ExampleDynamicPlugins"]}
+
+# Where a LINKED_SHARED_LIBRARIES target keeps the tests SwiftPM can't run, under Tests/<name>.
+LINKED_TESTS_DIRECTORY = "LinkedSharedLibraries"
+
+# Shared libraries (SHARED_LIBRARIES) a test target opens itself with dlopen, by test target name.
+# The test program doesn't link them; it finds the file at run time: under Bazel in its runfiles
+# (`data`, at Sources/<name>/lib<name>.<extension> under $TEST_SRCDIR/$TEST_WORKSPACE), under
+# SwiftPM beside its own test bundle or binary, where SwiftPM builds every product.
+LOADED_SHARED_LIBRARIES = {"LinkerSetsDynamicTests": ["ExampleLoadedPlugins"]}
 
 # Modules offered as products of their own but left out of the umbrella, by name from MODULES:
 # ones an adopter imports on purpose rather than with `import LinkerSets`, such as a test-support
@@ -224,6 +257,9 @@ EXECUTABLES = [
 # holds tests. (name, dependencies)
 TEST_TARGETS = [
     (f"{PROJECT}Tests", [PROJECT, "ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
+    # Links ExampleDynamicPlugins at launch (under Bazel) and opens ExampleLoadedPlugins with dlopen
+    # (LINKED_SHARED_LIBRARIES, LOADED_SHARED_LIBRARIES), so depends on neither.
+    ("LinkerSetsDynamicTests", [PROJECT]),
     ("LinkerSetsMacrosTests", ["LinkerSetsMacros", "ExampleRoutesMacros", "ExampleEventsMacros", "LinkerSetsMacroSupport", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
 ]
 
@@ -654,6 +690,7 @@ def check():
             assert d not in TESTING_MODULES, f"the executable {name} depends on {d}, which imports Testing, a test-only library"
     check_resources(names)
     check_generated_sources(names, tests)
+    check_shared_libraries(names, tests)
 
 
 def macro_names():
@@ -692,6 +729,68 @@ def simulator_only(name):
 def simulator_test(name):
     """Whether test target `name` runs in the iOS simulator: alone, or on the Mac too (SIMULATOR_TESTS)."""
     return name in SIMULATOR_TESTS or simulator_only(name)
+
+
+def shared_library_tests():
+    """The test targets that link or open a shared library (LINKED_SHARED_LIBRARIES,
+    LOADED_SHARED_LIBRARIES), sorted: the WebAssembly test run leaves them out, as WASI has none."""
+    return sorted(set(LINKED_SHARED_LIBRARIES) | set(LOADED_SHARED_LIBRARIES))
+
+
+def modules_reached(deps):
+    """The modules and plugins `deps` name, directly or through other modules' dependencies."""
+    graph = {m[0]: m[3] for m in MODULES + MACROS}
+    reached, pending = set(), list(deps)
+    while pending:
+        d = pending.pop()
+        if d in reached or "/" in d:
+            continue
+        reached.add(d)
+        pending += graph.get(d, [])
+    return reached
+
+
+def check_shared_libraries(names, tests):
+    assert len(SHARED_LIBRARIES) == len(set(SHARED_LIBRARIES)), "SHARED_LIBRARIES lists a module twice"
+    for name in SHARED_LIBRARIES:
+        assert name in names, f"SHARED_LIBRARIES names unknown module {name}"
+        assert name in EXAMPLE_MODULES, \
+            f"SHARED_LIBRARIES names {name}, which isn't an example module: a shared library is a test fixture, so list it in EXAMPLE_MODULES"
+        assert name not in IOS_MODULES, f"SHARED_LIBRARIES names the iOS module {name}, which only the simulator builds"
+        assert name not in TESTING_MODULES, f"SHARED_LIBRARIES names {name}, which imports Testing, a test-only library"
+    for table, libraries in [("LINKED_SHARED_LIBRARIES", LINKED_SHARED_LIBRARIES), ("LOADED_SHARED_LIBRARIES", LOADED_SHARED_LIBRARIES)]:
+        for name, listed in libraries.items():
+            assert name in tests, f"{table} names unknown test target {name}"
+            assert listed, f"{table} gives {name} no libraries: list at least one, or leave {name} out"
+            assert not simulator_test(name), f"{name} runs in the iOS simulator, which {table} doesn't support"
+            assert name not in PERFORMANCE_TESTS, \
+                f"{name} has speed-reliant tests (PERFORMANCE_TESTS), whose target {table} doesn't reach: give these tests a target of their own"
+            reached = modules_reached(dict(TEST_TARGETS)[name])
+            for library in listed:
+                assert library in SHARED_LIBRARIES, f"{table} gives {name} {library}, which SHARED_LIBRARIES doesn't list"
+                assert listed.count(library) == 1, f"{table} lists {library} for {name} more than once"
+                assert library not in reached, (
+                    f"{name} depends on {library}, so its program links the module itself, and the records with it, "
+                    f"besides the shared library {table} names: leave {library} out of its dependencies")
+    for name in sorted(set(LINKED_SHARED_LIBRARIES) & set(LOADED_SHARED_LIBRARIES)):
+        both = sorted(set(LINKED_SHARED_LIBRARIES[name]) & set(LOADED_SHARED_LIBRARIES[name]))
+        assert not both, f"{name} both links and opens {', '.join(both)}: the program would hold it already when it opens it"
+    for name in tests:
+        directory = os.path.join(ROOT, "Tests", name)
+        linked = swift_sources(os.path.join(directory, LINKED_TESTS_DIRECTORY))
+        assert bool(linked) == (name in LINKED_SHARED_LIBRARIES), (
+            f"Tests/{name}/{LINKED_TESTS_DIRECTORY} holds Swift sources exactly when LINKED_SHARED_LIBRARIES lists {name}: "
+            "it holds the tests that need the libraries linked at launch, which SwiftPM leaves out")
+        if linked:
+            others = [path for path in swift_sources(directory) if path not in linked]
+            assert others, (
+                f"Tests/{name} holds tests only in {LINKED_TESTS_DIRECTORY}/, which SwiftPM leaves out, and a SwiftPM "
+                "target with no sources is an error: add a test SwiftPM can run, such as one that opens a library")
+
+
+def swift_sources(directory):
+    """The Swift files under `directory`, recursively, sorted; none when it doesn't exist."""
+    return sorted(glob.glob(os.path.join(directory, "**", "*.swift"), recursive=True))
 
 
 def simulator_label(name):
@@ -826,7 +925,8 @@ def bazel_label(d):
 
 def excluded(path):
     """Non-source files SwiftPM would otherwise warn about, for the target at `path`."""
-    return [f for f in ("BUILD.bazel", "README.md", "Performance", "__Snapshots__") if os.path.exists(os.path.join(ROOT, path, f))]
+    # LINKED_TESTS_DIRECTORY holds tests SwiftPM can't link (LINKED_SHARED_LIBRARIES).
+    return [f for f in ("BUILD.bazel", "README.md", "Performance", "__Snapshots__", LINKED_TESTS_DIRECTORY) if os.path.exists(os.path.join(ROOT, path, f))]
 
 
 def swift_string(text):
@@ -950,7 +1050,18 @@ def package_swift():
     lines += [f'    .library(name: "{m[0]}", targets: ["{m[0]}"]),' for m in library_modules()]
     lines += [f'    .executable(name: "{e[0]}", targets: ["{e[0]}"]),' for e in EXECUTABLES]
     lines += [f'    .plugin(name: "{p[0]}", targets: ["{p[0]}"]),' for p in PLUGINS]
-    lines += ["]", "", "let dependencies: [Package.Dependency] = ["]
+    lines.append("]")
+    if SHARED_LIBRARIES:
+        lines += [
+            "",
+            "// Example modules also built as shared libraries, lib<Name>.dylib or lib<Name>.so beside the test",
+            "// products, for the tests that link or open them (SHARED_LIBRARIES in scripts/modules.py). WASI",
+            "// has no shared libraries, so the WebAssembly test run declares none.",
+            "let sharedLibraries: [Product] = wasiTests != nil ? [] : [",
+        ]
+        lines += [f'    .library(name: "{name}", type: .dynamic, targets: ["{name}"]),' for name in SHARED_LIBRARIES]
+        lines.append("]")
+    lines += ["", "let dependencies: [Package.Dependency] = ["]
     lines += [f'    .package(url: "{url}", {requirement(version)}),' for _, url, version in package_dependencies()]
     lines += ["]", "", "let targets: [Target] = ["]
     group = None
@@ -1017,7 +1128,7 @@ def package_swift():
         f'    name: "{PROJECT}",',
         "    // Keep in step with .bazelrc's --macos_minimum_os.",
         f"    platforms: {PLATFORMS},",
-        "    products: products,",
+        "    products: products" + (" + sharedLibraries," if SHARED_LIBRARIES else ","),
         "    dependencies: dependencies,",
         "    targets: targets.filter { $0.type != .test || wasiTests?.contains($0.name) ?? true }",
         ")",
@@ -1079,10 +1190,24 @@ def build_bazel(name, description, deps, linked=()):
             f"{resources}"
         )
     if name in EXAMPLE_MODULES:
+        shared = name in SHARED_LIBRARIES
+        shared_load = 'load("//tools:shared_library.bzl", "swift_shared_library")\n' if shared else ""
+        shared_library = (
+            "\n# Also built as a shared library (SHARED_LIBRARIES in scripts/modules.py): `:SharedLibrary`, the file,\n"
+            "# and `:LinkedSharedLibrary`, for a test to link at launch.\n"
+            "swift_shared_library(\n"
+            f'    module_name = "{name}",\n'
+            f'    library = ":{name}",\n'
+            f'    tags = ["{RELEASE_EXCLUDED_TAG}"],\n'
+            "    # The tests, and //:package_swift_test, which checks Package.swift's products against it.\n"
+            '    visibility = [\n        "//:__pkg__",\n        "//Tests:__subpackages__",\n    ],\n'
+            ")\n"
+        ) if shared else ""
         return (
             "# GENERATED by scripts/modules.py — edit the table there, then run `just modules`.\n\n"
             f"{generated_load}"
             f"{resources_load}"
+            f"{shared_load}"
             'load("//tools:swift_rules.bzl", "swift_library")\n\n'
             f"{generated}"
             f"# {description}\n"
@@ -1099,6 +1224,7 @@ def build_bazel(name, description, deps, linked=()):
             '    visibility = ["//visibility:public"],\n'
             ")\n"
             f"{resources}"
+            f"{shared_library}"
         )
     doc_deps = "".join(f'        "{bazel_label(d)}:{d}Documentation",\n' for d in [*deps, *linked] if "/" not in d and not is_macro(d))
     doc_deps_attr = f"    deps = [\n{doc_deps}    ],\n" if doc_deps else ""
@@ -1253,6 +1379,16 @@ def test_targets_bazel(name, deps, size, srcs, tags, simulator=False, environmen
                        '        "//conditions:default": ["@platforms//:incompatible"],\n'
                        '    }),\n'
                        if name in APPLE_ONLY_TESTS else "")
+    # The runners, not the library, link the shared libraries (LINKED_SHARED_LIBRARIES), and carry
+    # the ones the tests open (LOADED_SHARED_LIBRARIES) in their runfiles.
+    linked = "".join(f'        "//Sources/{library}:LinkedSharedLibrary",\n' for library in LINKED_SHARED_LIBRARIES.get(name, []))
+    runner_deps_attr = (f'    deps = [\n        ":{name}Library",\n{linked}    ],\n' if linked
+                        else f'    deps = [":{name}Library"],\n')
+    loaded = "".join(f'        "//Sources/{library}:SharedLibrary",\n' for library in LOADED_SHARED_LIBRARIES.get(name, []))
+    runner_data_attr = (
+        "    # Opened with dlopen, never linked (LOADED_SHARED_LIBRARIES in scripts/modules.py).\n"
+        f"    data = [\n{loaded}    ],\n"
+    ) if loaded else ""
     return (
         "swift_library(\n"
         f'    name = "{name}Library",\n'
@@ -1276,7 +1412,8 @@ def test_targets_bazel(name, deps, size, srcs, tags, simulator=False, environmen
         f'    size = "{size}",\n'
         f"{tags_attr}"
         f"{compatible_attr}"
-        f'    deps = [":{name}Library"],\n'
+        f"{runner_data_attr}"
+        f"{runner_deps_attr}"
         ")\n\n"
         "# The generated Xcode project: a real .xctest bundle (an MH_BUNDLE), which is what Xcode's test\n"
         "# runner loads. `manual` keeps it out of `bazel test //...`; it runs through xcodebuild, so it\n"
@@ -1289,7 +1426,8 @@ def test_targets_bazel(name, deps, size, srcs, tags, simulator=False, environmen
         '    tags = ["manual", "no-sandbox"],\n'
         "    # Visible so `//:xcodeproj` can name it as a top-level target.\n"
         '    visibility = ["//visibility:public"],\n'
-        f'    deps = [":{name}Library"],\n'
+        f"{runner_data_attr}"
+        f"{runner_deps_attr}"
         ")\n"
     ) + (simulator_half_bazel(name, deps, srcs, tags, env_attr) if simulator else "")
 
@@ -1474,6 +1612,16 @@ def examples_bzl():
     )
 
 
+def shared_libraries_bzl():
+    packages = "".join(f'    "Sources/{name}",\n' for name in SHARED_LIBRARIES)
+    return (
+        '"""GENERATED by scripts/modules.py (SHARED_LIBRARIES) — edit the list there, then run `just modules`."""\n\n'
+        "# The source packages whose module is also built as a shared library (:SharedLibrary), which\n"
+        "# //:package_swift_test checks against Package.swift's `.library(type: .dynamic)` products.\n"
+        f"SHARED_LIBRARY_PACKAGES = [\n{packages}]\n"
+    )
+
+
 def ios_bzl():
     modules = "".join(f'    "Sources/{name}",\n' for name in IOS_MODULES)
     tests = "".join(f'    "Tests/{name}",\n' for name, _ in TEST_TARGETS if simulator_only(name))
@@ -1535,7 +1683,8 @@ def main():
     write(os.path.join(ROOT, "tools", "examples.bzl"), examples_bzl())
     write(os.path.join(ROOT, "tools", "macros.bzl"), macros_bzl())
     write(os.path.join(ROOT, "tools", "performance_tests.bzl"), performance_tests_bzl())
-    names = [m[0] for m in umbrella_modules()]
+    write(os.path.join(ROOT, "tools", "shared_libraries.bzl"), shared_libraries_bzl())
+    names =[m[0] for m in umbrella_modules()]
     if umbrella():
         directory = os.path.join(ROOT, "Sources", PROJECT)
         write(os.path.join(directory, "BUILD.bazel"), build_bazel(PROJECT, f"Umbrella: `import {PROJECT}` imports every module.", names,

@@ -10,4 +10,6 @@ EXAMPLE_PACKAGES = [
     "Sources/ExampleRoutesMacros",
     "Sources/ExampleMigrationsMacros",
     "Sources/ExampleEventsMacros",
+    "Sources/ExampleDynamicPlugins",
+    "Sources/ExampleLoadedPlugins",
 ]

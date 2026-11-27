@@ -72,31 +72,43 @@ extension LinkerSetMacro {
         nil
     }
 
-    /// The record that `declaration` becomes, as a peer.
+    /// The record that `declaration` becomes, as a peer:
+    /// ``recordPeers(of:providingPeersOf:in:)``.
     public static func expansion(
+        of node: AttributeSyntax,
+        providingPeersOf declaration: some DeclSyntaxProtocol,
+        in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        try recordPeers(of: node, providingPeersOf: declaration, in: context)
+    }
+
+    /// The record that `declaration` becomes, as a peer, for a macro that writes its own
+    /// `expansion` and calls this from it: to add a condition first, or beside another role, such
+    /// as an extension that adds a conformance.
+    ///
+    /// - Parameters:
+    ///   - node: The attribute being expanded.
+    ///   - declaration: The declaration it's attached to.
+    ///   - context: The expansion's context.
+    /// - Returns: The record's declaration, one per object format under `#if objectFormat(...)`.
+    /// - Throws: The ``LinkerSetMacroDiagnostic/error`` of a refused kind or declaration, and
+    ///   whatever ``kind(of:)`` or ``requiredConformance(of:)`` throws.
+    public static func recordPeers(
         of node: AttributeSyntax,
         providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         let macroName = "@" + node.attributeName.trimmedDescription
         let kind = try kind(of: node)
-        guard kind != 0 else { throw LinkerSetMacroDiagnostic.error(.kindZero, at: node, macroName: macroName) }
-        #if canImport(SwiftSyntax600)
-        try requireRecordableScope(context.lexicalContext, of: declaration, macroName: macroName)
-        let isMember = context.lexicalContext.first?.isTypeScope ?? false
-        // A member takes its type's (or its extension's) global actor unless it says otherwise.
-        let enclosingIsMainActor = context.lexicalContext.first?.asProtocol(WithAttributesSyntax.self)?.attributes.isMainActor ?? false
-        #else
-        // A macro sees its lexical context from swift-syntax 600 on. Before it, `static` marks a
-        // member (a global can't take it), and an instance member, a local declaration and a
-        // member of a generic type are left for the compiler to refuse in the expansion.
-        let isMember = declaration.asProtocol(WithModifiersSyntax.self)?.modifiers.isStatic ?? false
-        // Nor can it see the enclosing type's attributes: only the declaration's own isolation counts.
-        let enclosingIsMainActor = false
-        #endif
-        let value = try value(of: declaration, isMember: isMember, enclosingIsMainActor: enclosingIsMainActor, attribute: node, macroName: macroName)
+        guard kind != 0 else { throw LinkerSetMacroDiagnostic(.kindZero, macroName: macroName, at: node).error }
+        let site = RecordSite(declaration, in: context)
+        let value: ExprSyntax
+        switch try recordValue(of: declaration, at: site, attribute: node, macroName: macroName) {
+        case .value(let expression): value = expression
+        case .refused(let refusal): throw refusal.error
+        }
         let name = context.makeUniqueName("linkerSetRecord")
-        let storage = isMember ? "private static let" : "private let"
+        let storage = site.isMember ? "private static let" : "private let"
         let record: ExprSyntax = "(\(raw: kind.hexadecimalLiteral), 0, { outValue, type, _, _ in LinkerSets.LinkerSetRecord.__store(\(value), into: outValue, ifAsked: type) }, 0, 0)"
         // An ELF image holds each record as a note (LinkerSetRecord.Note) whose header gives the
         // record's size, a literal that differs with the pointer width; a section's initializer is
@@ -118,23 +130,48 @@ extension LinkerSetMacro {
         ]
     }
 
-    #if canImport(SwiftSyntax600)
-    /// Refuses a declaration whose scope a record can't reach: inside a function, closure or
-    /// accessor (a record is a global, and a local has no address until its scope runs), in a
-    /// protocol (a requirement has no value of its own), or in a generic type (a record holds
-    /// one concrete value). `lexicalContext` runs from the innermost scope out.
-    private static func requireRecordableScope(_ lexicalContext: [Syntax], of declaration: some DeclSyntaxProtocol, macroName: String) throws {
-        if lexicalContext.contains(where: { !$0.isTypeScope }) {
-            throw LinkerSetMacroDiagnostic.error(.localDeclaration, at: declaration, macroName: macroName)
-        }
-        if lexicalContext.first?.is(ProtocolDeclSyntax.self) == true {
-            throw LinkerSetMacroDiagnostic.error(.protocolRequirement, at: declaration, macroName: macroName)
-        }
-        if lexicalContext.contains(where: { NominalType($0)?.isGeneric == true }) {
-            throw LinkerSetMacroDiagnostic.error(.memberOfGenericType, at: declaration, macroName: macroName)
-        }
+    /// Why `declaration` can't hold a record, or `nil` when it can: the checks
+    /// ``recordPeers(of:providingPeersOf:in:)`` makes of the declaration and of where it sits,
+    /// without writing anything.
+    ///
+    /// A client that wants something other than the error for one of them, such as a note and no
+    /// record for a generic type, asks this first, reports the refusal its own way and returns no
+    /// peers. The kind isn't checked here; ``recordPeers(of:providingPeersOf:in:)`` still checks
+    /// it.
+    ///
+    /// Where the declaration sits (in a function's body, a protocol or a generic type) is seen
+    /// from swift-syntax 600 on. Before it, those three are left for the compiler to refuse in the
+    /// expansion, and this returns `nil` for them.
+    ///
+    /// - Parameters:
+    ///   - node: The attribute being expanded.
+    ///   - declaration: The declaration it's attached to.
+    ///   - context: The expansion's context.
+    /// - Returns: The refusal, with its ``LinkerSetMacroDiagnostic/reason`` and the node it points
+    ///   at, or `nil`.
+    /// - Throws: Whatever ``requiredConformance(of:)`` throws.
+    public static func refusal(
+        of node: AttributeSyntax,
+        providingPeersOf declaration: some DeclSyntaxProtocol,
+        in context: some MacroExpansionContext
+    ) throws -> LinkerSetMacroDiagnostic? {
+        let macroName = "@" + node.attributeName.trimmedDescription
+        let site = RecordSite(declaration, in: context)
+        guard case .refused(let refusal) = try recordValue(of: declaration, at: site, attribute: node, macroName: macroName) else { return nil }
+        return refusal
     }
-    #endif
+
+    /// The expression the record's accessor stores, or why there is none: the scope first, then
+    /// the declaration itself.
+    ///
+    /// A refusal is a value rather than a thrown error, so ``refusal(of:providingPeersOf:in:)`` can
+    /// return it, while a client's own error from ``requiredConformance(of:)`` still propagates.
+    private static func recordValue(of declaration: some DeclSyntaxProtocol, at site: RecordSite, attribute: AttributeSyntax, macroName: String) throws -> RecordValue {
+        if let reason = site.scopeRefusal {
+            return .refused(LinkerSetMacroDiagnostic(reason, macroName: macroName, at: declaration))
+        }
+        return try value(of: declaration, isMember: site.isMember, enclosingIsMainActor: site.enclosingIsMainActor, attribute: attribute, macroName: macroName)
+    }
 
     /// The expression the record's accessor stores: the variable; the function as a value of its
     /// function type, named with its argument labels so an overload can't be mistaken for it; or
@@ -146,48 +183,83 @@ extension LinkerSetMacro {
     /// call. A property isolated to the main actor can't be read there at all, so it is refused:
     /// one marked `@MainActor` itself, or a `var` of a `@MainActor` type. A `let` of a
     /// `@MainActor` type is read as it is, since a stored `let` of a Sendable type is nonisolated.
-    private static func value(of declaration: some DeclSyntaxProtocol, isMember: Bool, enclosingIsMainActor: Bool, attribute: AttributeSyntax, macroName: String) throws -> ExprSyntax {
+    private static func value(of declaration: some DeclSyntaxProtocol, isMember: Bool, enclosingIsMainActor: Bool, attribute: AttributeSyntax, macroName: String) throws -> RecordValue {
+        func refused(_ reason: LinkerSetMacroDiagnostic.Reason, at node: some SyntaxProtocol) -> RecordValue {
+            .refused(LinkerSetMacroDiagnostic(reason, macroName: macroName, at: node))
+        }
         if let variable = declaration.as(VariableDeclSyntax.self) {
-            try requireStatic(variable.modifiers, of: variable, isMember: isMember, macroName: macroName)
+            if isMember && !variable.modifiers.isStatic { return refused(.instanceMember, at: variable) }
             let inheritsMainActor = enclosingIsMainActor && !variable.modifiers.isNonisolated
                 && variable.bindingSpecifier.tokenKind == .keyword(.var)
-            if variable.attributes.isMainActor || inheritsMainActor {
-                throw LinkerSetMacroDiagnostic.error(.isolatedProperty, at: variable, macroName: macroName)
-            }
+            if variable.attributes.isMainActor || inheritsMainActor { return refused(.isolatedProperty, at: variable) }
             // The compiler itself refuses a peer macro on a declaration of several variables, so one
             // binding is left: refuse it when it isn't a single name.
             guard let pattern = variable.bindings.first?.pattern.as(IdentifierPatternSyntax.self) else {
-                throw LinkerSetMacroDiagnostic.error(.unnamedVariable, at: variable, macroName: macroName)
+                return refused(.unnamedVariable, at: variable)
             }
-            return isMember ? "Self.\(pattern.identifier.trimmed)" : "\(pattern.identifier.trimmed)"
+            return .value(isMember ? "Self.\(pattern.identifier.trimmed)" : "\(pattern.identifier.trimmed)")
         }
         if let function = declaration.as(FunctionDeclSyntax.self) {
-            try requireStatic(function.modifiers, of: function, isMember: isMember, macroName: macroName)
-            guard function.genericParameterClause == nil else {
-                throw LinkerSetMacroDiagnostic.error(.genericFunction, at: function, macroName: macroName)
-            }
+            if isMember && !function.modifiers.isStatic { return refused(.instanceMember, at: function) }
+            guard function.genericParameterClause == nil else { return refused(.genericFunction, at: function) }
             let reference: ExprSyntax = isMember ? "Self.\(raw: function.compoundName)" : "\(raw: function.compoundName)"
             let isMainActor = function.attributes.isMainActor || (enclosingIsMainActor && !function.modifiers.isNonisolated)
-            return isMainActor ? "\(reference) as @MainActor \(function.functionType)" : "\(reference) as \(function.functionType)"
+            return .value(isMainActor ? "\(reference) as @MainActor \(function.functionType)" : "\(reference) as \(function.functionType)")
         }
         if let type = NominalType(declaration) {
-            guard !type.isGeneric else {
-                throw LinkerSetMacroDiagnostic.error(.genericType, at: declaration, macroName: macroName)
-            }
+            guard !type.isGeneric else { return refused(.genericType, at: declaration) }
             let reference: ExprSyntax = isMember ? "Self.\(type.name).self" : "\(type.name).self"
             // The coercion is the conformance check: a type that doesn't conform fails to compile
             // here, at the attribute.
-            guard let conformance = try requiredConformance(of: attribute) else { return "\(reference) as Any.Type" }
-            return "\(reference) as any (\(conformance.trimmed)).Type"
+            guard let conformance = try requiredConformance(of: attribute) else { return .value("\(reference) as Any.Type") }
+            return .value("\(reference) as any (\(conformance.trimmed)).Type")
         }
-        throw LinkerSetMacroDiagnostic.error(.unsupportedDeclaration, at: declaration, macroName: macroName)
+        return refused(.unsupportedDeclaration, at: declaration)
     }
+}
 
-    private static func requireStatic(_ modifiers: DeclModifierListSyntax, of declaration: some SyntaxProtocol, isMember: Bool, macroName: String) throws {
-        guard isMember else { return }
-        guard modifiers.isStatic else {
-            throw LinkerSetMacroDiagnostic.error(.instanceMember, at: declaration, macroName: macroName)
+/// What a declaration's record stores, or why it can't have one.
+private enum RecordValue {
+    case value(ExprSyntax)
+    case refused(LinkerSetMacroDiagnostic)
+}
+
+/// Where a declaration sits, as far as the macro can see it.
+private struct RecordSite {
+    /// Whether the declaration is a member of a type (or extension), so the record is a static
+    /// member beside it.
+    let isMember: Bool
+    /// Whether the enclosing type or extension is marked `@MainActor`, which a member takes unless
+    /// it says otherwise.
+    let enclosingIsMainActor: Bool
+    /// Why no record can be declared here, or `nil`.
+    let scopeRefusal: LinkerSetMacroDiagnostic.Reason?
+
+    init(_ declaration: some DeclSyntaxProtocol, in context: some MacroExpansionContext) {
+        #if canImport(SwiftSyntax600)
+        let lexicalContext = context.lexicalContext  // innermost scope first
+        isMember = lexicalContext.first?.isTypeScope ?? false
+        enclosingIsMainActor = lexicalContext.first?.asProtocol(WithAttributesSyntax.self)?.attributes.isMainActor ?? false
+        // A record is a global, and a local has no address until its scope runs; a requirement
+        // has no value of its own; a record holds one concrete value, not one per specialization.
+        if lexicalContext.contains(where: { !$0.isTypeScope }) {
+            scopeRefusal = .localDeclaration
+        } else if lexicalContext.first?.is(ProtocolDeclSyntax.self) == true {
+            scopeRefusal = .protocolRequirement
+        } else if lexicalContext.contains(where: { NominalType($0)?.isGeneric == true }) {
+            scopeRefusal = .memberOfGenericType
+        } else {
+            scopeRefusal = nil
         }
+        #else
+        // A macro sees its lexical context from swift-syntax 600 on. Before it, `static` marks a
+        // member (a global can't take it), the enclosing type's isolation can't be seen, and a
+        // local declaration or a member of a generic type is left for the compiler to refuse in
+        // the expansion.
+        isMember = declaration.asProtocol(WithModifiersSyntax.self)?.modifiers.isStatic ?? false
+        enclosingIsMainActor = false
+        scopeRefusal = nil
+        #endif
     }
 }
 

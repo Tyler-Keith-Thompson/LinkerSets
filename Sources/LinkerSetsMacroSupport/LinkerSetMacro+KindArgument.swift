@@ -12,14 +12,14 @@ extension LinkerSetMacro {
         let macroName = "@" + attribute.attributeName.trimmedDescription
         let argument = attribute.arguments?.as(LabeledExprListSyntax.self)?.first { $0.label?.text == "kind" }
         guard let argument, let literal = argument.expression.as(IntegerLiteralExprSyntax.self) else {
-            throw LinkerSetMacroDiagnostic.error(.kindNotLiteral, at: attribute, macroName: macroName)
+            throw LinkerSetMacroDiagnostic(.kindNotLiteral, macroName: macroName, at: attribute).error
         }
         guard let kind = literal.unsignedValue else {
-            throw LinkerSetMacroDiagnostic.error(.kindOutOfRange, at: literal, macroName: macroName)
+            throw LinkerSetMacroDiagnostic(.kindOutOfRange, macroName: macroName, at: literal).error
         }
         // The shared expansion refuses kind 0 at the attribute; here it can point at the literal.
         guard kind != 0 else {
-            throw LinkerSetMacroDiagnostic.error(.kindZero, at: literal, macroName: macroName)
+            throw LinkerSetMacroDiagnostic(.kindZero, macroName: macroName, at: literal).error
         }
         return kind
     }

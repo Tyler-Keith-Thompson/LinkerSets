@@ -1,30 +1,61 @@
-import SwiftDiagnostics
+@_exported import SwiftDiagnostics
 import SwiftSyntax
 
-/// What a linker-set macro refuses, each with the message the compiler shows, naming the macro
-/// as it was written (`@Route`).
-struct LinkerSetMacroDiagnostic: DiagnosticMessage, Error {
+/// Why a linker-set macro refuses a declaration or a kind, with the message the compiler shows,
+/// naming the macro as it was written (`@Route`), and the node the message points at.
+///
+/// ``LinkerSetMacro/recordPeers(of:providingPeersOf:in:)`` throws it as an error.
+/// ``LinkerSetMacro/refusal(of:providingPeersOf:in:)`` returns it, for a client that reports the
+/// refusal its own way, such as a note and no record.
+public struct LinkerSetMacroDiagnostic: DiagnosticMessage {
     /// The ways a declaration or a kind can be refused.
-    enum Reason: String {
+    public enum Reason: String, Hashable, Sendable {
+        /// The kind isn't an integer literal.
         case kindNotLiteral
+        /// The kind doesn't fit in 32 bits.
         case kindOutOfRange
+        /// The kind is 0, which marks an empty slot.
         case kindZero
+        /// The declaration is none a record can hold, such as an initializer or a typealias.
         case unsupportedDeclaration
+        /// The declaration is an instance member, which has no value without an instance.
         case instanceMember
+        /// The variable binds a tuple pattern rather than one name.
         case unnamedVariable
+        /// The function is generic.
         case genericFunction
+        /// The type is generic.
         case genericType
+        /// The declaration is a member of a generic type.
         case memberOfGenericType
+        /// The declaration is a protocol's requirement.
         case protocolRequirement
+        /// The declaration is inside a function, closure or accessor.
         case localDeclaration
+        /// The property is isolated to the main actor, out of the record's accessor's reach.
         case isolatedProperty
     }
 
-    let reason: Reason
+    /// Why the declaration or kind is refused.
+    public let reason: Reason
     /// The attribute as written, such as `@Route`.
-    let macroName: String
+    public let macroName: String
+    /// The node the message points at: the declaration, or the attribute for a kind.
+    public let node: Syntax
 
-    var message: String {
+    /// The refusal of `reason`, reported at `node` under `macroName`.
+    ///
+    /// - Parameters:
+    ///   - reason: Why the declaration or kind is refused.
+    ///   - macroName: The attribute as written, such as `@Route`.
+    ///   - node: The node the message points at.
+    public init(_ reason: Reason, macroName: String, at node: some SyntaxProtocol) {
+        self.reason = reason
+        self.macroName = macroName
+        self.node = Syntax(node)
+    }
+
+    public var message: String {
         switch reason {
         case .kindNotLiteral:
             "'\(macroName)' needs its kind as an integer literal, such as 'kind: 0x726F_7574'"
@@ -53,14 +84,15 @@ struct LinkerSetMacroDiagnostic: DiagnosticMessage, Error {
         }
     }
 
-    var diagnosticID: MessageID {
+    public var diagnosticID: MessageID {
         MessageID(domain: "LinkerSetsMacroSupport", id: reason.rawValue)
     }
 
-    var severity: DiagnosticSeverity { .error }
+    /// Always an error: the macro writes no record for a declaration it refuses.
+    public var severity: DiagnosticSeverity { .error }
 
-    /// The error that reports `reason` at `node`.
-    static func error(_ reason: Reason, at node: some SyntaxProtocol, macroName: String) -> DiagnosticsError {
-        DiagnosticsError(diagnostics: [Diagnostic(node: Syntax(node), message: LinkerSetMacroDiagnostic(reason: reason, macroName: macroName))])
+    /// The error the expansion throws: this refusal as a diagnostic at ``node``.
+    public var error: DiagnosticsError {
+        DiagnosticsError(diagnostics: [Diagnostic(node: node, message: self)])
     }
 }

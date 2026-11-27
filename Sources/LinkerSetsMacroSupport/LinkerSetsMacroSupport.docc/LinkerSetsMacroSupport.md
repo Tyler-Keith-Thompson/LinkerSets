@@ -83,8 +83,89 @@ see where its declaration sits, so the type must be declared at file scope.
 A macro that takes its kind as an argument can return ``LinkerSetMacro/kindArgument(of:)`` from
 ``LinkerSetMacro/kind(of:)``.
 
+### Writing the expansion yourself
+
+``LinkerSetMacro`` supplies the peer `expansion`. A macro that needs more writes its own and
+calls ``LinkerSetMacro/recordPeers(of:providingPeersOf:in:)`` from it for the record. That's how
+a macro adds the conformance as well, so its users write `@Event struct Login {}` without naming
+the protocol. The macro takes an extension role beside the peer:
+
+```swift
+public enum EventMacro: LinkerSetMacro, ExtensionMacro {
+    public static func kind(of attribute: AttributeSyntax) -> UInt32 { 0x6576_6E74 }  // "evnt"
+
+    public static func requiredConformance(of attribute: AttributeSyntax) -> TypeSyntax? {
+        "Events.AnalyticsEvent"
+    }
+
+    // The record, as a peer.
+    public static func expansion(
+        of node: AttributeSyntax,
+        providingPeersOf declaration: some DeclSyntaxProtocol,
+        in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        try recordPeers(of: node, providingPeersOf: declaration, in: context)
+    }
+
+    // The conformance the record requires, as an extension.
+    public static func expansion(
+        of node: AttributeSyntax,
+        attachedTo declaration: some DeclGroupSyntax,
+        providingExtensionsOf type: some TypeSyntaxProtocol,
+        conformingTo protocols: [TypeSyntax],
+        in context: some MacroExpansionContext
+    ) throws -> [ExtensionDeclSyntax] {
+        [try ExtensionDeclSyntax("extension \(type.trimmed): Events.AnalyticsEvent {}")]
+    }
+}
+```
+
+The library declares the macro with both roles:
+
+```swift
+@attached(peer)
+@attached(extension, conformances: AnalyticsEvent)
+public macro Event() = #externalMacro(module: "EventsMacros", type: "EventMacro")
+```
+
+A type can then carry data of its own through the protocol (a schema, a name) while the record
+holds only its metatype, read as `LinkerSet<any AnalyticsEvent.Type>`.
+
+### Skipping a record instead of refusing it
+
+The expansion refuses what a record can't hold with an error. A macro that would rather skip some
+of those (a generic event that its library lists by hand, say) asks
+``LinkerSetMacro/refusal(of:providingPeersOf:in:)`` first. It returns a
+``LinkerSetMacroDiagnostic`` whose ``LinkerSetMacroDiagnostic/reason`` says why, and whose
+``LinkerSetMacroDiagnostic/node`` is where to report it, or `nil` when the declaration can hold a
+record:
+
+```swift
+public static func expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+) throws -> [DeclSyntax] {
+    if let refusal = try refusal(of: node, providingPeersOf: declaration, in: context),
+       refusal.reason == .genericType {
+        context.diagnose(Diagnostic(node: refusal.node, message: GenericEventNote()))
+        return []
+    }
+    return try recordPeers(of: node, providingPeersOf: declaration, in: context)
+}
+```
+
+Every other refusal still reaches ``LinkerSetMacro/recordPeers(of:providingPeersOf:in:)``, which
+throws it. Where a declaration sits (in a function's body, a protocol or a generic type) is seen
+from swift-syntax 600 on; before it those three aren't returned, and the compiler refuses them in
+the expansion.
+
 ## Topics
 
 ### Declaring a macro
 
 - ``LinkerSetMacro``
+
+### Diagnostics
+
+- ``LinkerSetMacroDiagnostic``

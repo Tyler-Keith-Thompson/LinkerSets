@@ -35,6 +35,12 @@ still readable when it turns up in a hex dump. To compute one in Swift:
 let kind = "menu".utf8.reduce(0) { $0 << 8 | UInt32($1) }  // 0x6D65_6E75
 ```
 
+Nothing can check at compile time that a kind is unique, because each module is compiled on its
+own. If two libraries pick the same number, their records land in the same set. What keeps them
+apart is the type you ask for: a record hands over its value only when asked for its own type, so
+a set of a type your library owns (`DebugMenuItem` here, not `String`) still holds only your
+declarations. Two libraries that share a kind *and* ask for the same type see each other's values.
+
 Give the kind a name for the code that reads it:
 
 ```swift

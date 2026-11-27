@@ -19,10 +19,11 @@
 public struct LinkerSetRecord {
     /// The function that produces a record's value.
     ///
-    /// It writes the value into `outValue`, which points to uninitialized memory of the type
-    /// `type` points to, and returns `true`; it returns `false` and writes nothing when it has no
-    /// value of that type, or when `hint` (a kind-specific filter, or `nil`) rules it out.
-    /// `reserved` is zero.
+    /// `type` points to the metatype of the value asked for (read it with
+    /// `type.load(as: Any.Type.self)`), and `outValue` to uninitialized memory of that type. The
+    /// accessor writes the value there and returns `true`, or returns `false` and writes nothing
+    /// when it has no value of that type or when `hint` (a kind-specific filter, or `nil`) rules
+    /// it out. `reserved` is zero.
     public typealias Accessor = @convention(c) (
         _ outValue: UnsafeMutableRawPointer,
         _ type: UnsafeRawPointer,
@@ -60,4 +61,22 @@ public struct LinkerSetRecord {
     /// the kind uses none.
     public let context: UInt
     @usableFromInline let reserved2: UInt
+
+    /// The value this record produces as a `Value`, or `nil` when it produces none of that type
+    /// or the slot holds no record.
+    ///
+    /// - Parameter type: The type to ask the record's accessor for.
+    /// - Returns: The value the accessor wrote, or `nil` when it declined.
+    public func value<Value>(as type: Value.Type = Value.self) -> Value? {
+        guard let accessor else { return nil }
+        return withUnsafeTemporaryAllocation(of: Value.self, capacity: 1) { buffer -> Value? in
+            // A temporary allocation of capacity 1 always has a base address; nil here would mean
+            // the allocator broke its contract, which no caller could handle.
+            let outValue = buffer.baseAddress!
+            let produced = withUnsafePointer(to: type) { typePointer in
+                accessor(UnsafeMutableRawPointer(outValue), UnsafeRawPointer(typePointer), nil, 0)
+            }
+            return produced ? outValue.move() : nil
+        }
+    }
 }

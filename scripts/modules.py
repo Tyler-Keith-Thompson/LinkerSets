@@ -91,7 +91,7 @@ MOCKING = "mockable/Mockable"
 # (name, group, description, dependencies)
 MODULES = [
     # Discovery
-    ("LinkerSets", "Discovery", "LinkerSetRecord and LinkerSetKind: the record every linker-set entry is, and the kind that tags it.", []),
+    ("LinkerSets", "Discovery", "LinkerSet, LinkerSetRecord and LinkerSetKind: the records of one kind found at run time, the record each entry is, and the kind that tags it.", []),
 ]
 
 # Modules only iOS builds: SwiftUI views and what they draw with. Bazel builds them for the

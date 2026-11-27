@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# LinkerSetRecord and LinkerSetKind: the record every linker-set entry is, and the kind that tags it.
+# LinkerSet, LinkerSetRecord and LinkerSetKind: the records of one kind found at run time, the record each entry is, and the kind that tags it.
 swift_library(
     name = "LinkerSets",
     srcs = glob(["**/*.swift"]),

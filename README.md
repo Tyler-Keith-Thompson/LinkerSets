@@ -60,7 +60,7 @@ let size = MemoryLayout<LinkerSetRecord>.size  // 32 where pointers are 64 bits,
 
 | Module | Holds |
 |---|---|
-| `LinkerSets` | `LinkerSetRecord`, the record every linker-set entry is, and `LinkerSetKind`, the kind that tags it |
+| `LinkerSets` | `LinkerSet`, the records of one kind found at run time; `LinkerSetRecord`, the record each entry is; and `LinkerSetKind`, the kind that tags it |
 
 ## Development
 

@@ -148,7 +148,7 @@ struct LinkerSetEnumerationTests {
             let sut = LinkerSet<Int>(kind: LinkerSetKind(rawValue: kind))
             var expected: [Int] = []
             for record in LinkerSetSection.records() where record.kind.rawValue == kind && record.accessor != nil {
-                if let value = record.value(as: Int.self) { expected.append(value) }
+                if let value = try? record.value(as: Int.self) { expected.append(value) }
             }
 
             let actual = sut.values

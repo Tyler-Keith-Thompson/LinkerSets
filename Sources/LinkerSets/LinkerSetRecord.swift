@@ -62,14 +62,23 @@ public struct LinkerSetRecord {
     public let context: UInt
     @usableFromInline let reserved2: UInt
 
-    /// The value this record produces as a `Value`, or `nil` when it produces none of that type
-    /// or the slot holds no record.
+    /// Whether this version of LinkerSets can read the record: its reserved fields are zero, as
+    /// every record of the current layout's are.
+    public var isSupportedVersion: Bool {
+        reserved1 == 0 && reserved2 == 0
+    }
+
+    /// The value this record produces as a `Value`.
     ///
     /// - Parameter type: The type to ask the record's accessor for.
-    /// - Returns: The value the accessor wrote, or `nil` when it declined.
-    public func value<Value>(as type: Value.Type = Value.self) -> Value? {
-        guard let accessor else { return nil }
-        return withUnsafeTemporaryAllocation(of: Value.self, capacity: 1) { buffer -> Value? in
+    /// - Returns: The value the accessor wrote.
+    /// - Throws: ``ValueError/emptySlot`` when the slot holds no record,
+    ///   ``ValueError/unsupportedVersion`` when its reserved fields aren't zero, and
+    ///   ``ValueError/typeMismatch`` when its accessor declines `Value`.
+    public func value<Value>(as type: Value.Type = Value.self) throws(ValueError) -> Value {
+        guard let accessor else { throw .emptySlot }
+        guard isSupportedVersion else { throw .unsupportedVersion }
+        let value = withUnsafeTemporaryAllocation(of: Value.self, capacity: 1) { buffer -> Value? in
             // A temporary allocation of capacity 1 always has a base address; nil here would mean
             // the allocator broke its contract, which no caller could handle.
             let outValue = buffer.baseAddress!
@@ -78,6 +87,8 @@ public struct LinkerSetRecord {
             }
             return produced ? outValue.move() : nil
         }
+        guard let value else { throw .typeMismatch }
+        return value
     }
 
     /// The body of an accessor the macros write: stores `value` into `outValue` when `type`

@@ -17,6 +17,10 @@
 /// linker laid them out, so two reads in one process return the same records in the same order.
 /// A kind no record was declared with gives an empty set, as does kind 0, which marks an empty
 /// slot.
+///
+/// Reading never traps. A record whose reserved fields aren't zero, written by a newer layout, is
+/// skipped; a section whose size isn't a whole number of records is read up to its last whole
+/// record.
 public struct LinkerSet<Value>: Sendable {
     /// The kind of record this set holds.
     public let kind: LinkerSetKind
@@ -28,12 +32,13 @@ public struct LinkerSet<Value>: Sendable {
         self.kind = kind
     }
 
-    /// Every record of this set's kind, skipping other kinds' records and empty slots.
+    /// Every record of this set's kind, skipping other kinds' records, empty slots and records of
+    /// a layout this version doesn't know (``LinkerSetRecord/isSupportedVersion``).
     ///
     /// - Complexity: O(*n*) in the number of records of every kind in every loaded image.
     public var records: [LinkerSetRecord] {
         guard kind != .emptySlot else { return [] }
-        return LinkerSetSection.records().filter { $0.kind == kind && $0.accessor != nil }
+        return LinkerSetSection.records().filter { $0.kind == kind && $0.accessor != nil && $0.isSupportedVersion }
     }
 
     /// The value of each record that produces a `Value`, in the order of ``records``.
@@ -42,7 +47,7 @@ public struct LinkerSet<Value>: Sendable {
     ///
     /// - Complexity: O(*n*) in the number of records of every kind in every loaded image.
     public var values: [Value] {
-        records.compactMap { $0.value(as: Value.self) }
+        records.compactMap { try? $0.value(as: Value.self) }
     }
 }
 #endif

@@ -23,10 +23,8 @@ extension LinkerSetSection {
     static func records() -> [LinkerSetRecord] {
         let start = unsafeBitCast(sectionStart as @convention(c) () -> Void, to: UnsafeRawPointer.self)
         let stop = unsafeBitCast(sectionStop as @convention(c) () -> Void, to: UnsafeRawPointer.self)
-        let count = (stop - start) / MemoryLayout<LinkerSetRecord>.stride
-        return start.withMemoryRebound(to: LinkerSetRecord.self, capacity: count) { first in
-            Array(UnsafeBufferPointer(start: first, count: count))
-        }
+        // A stop below the start would be a broken linker; read nothing rather than trap.
+        return records(in: UnsafeRawBufferPointer(start: start, count: max(0, stop - start)))
     }
 }
 #endif

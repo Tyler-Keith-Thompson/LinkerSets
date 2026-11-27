@@ -25,10 +25,7 @@ extension LinkerSetSection {
         let image = header
         #endif
         guard let start = getsectiondata(image, segmentName, sectionName, &size) else { return [] }
-        let count = Int(size) / MemoryLayout<LinkerSetRecord>.stride
-        return UnsafeRawPointer(start).withMemoryRebound(to: LinkerSetRecord.self, capacity: count) { first in
-            Array(UnsafeBufferPointer(start: first, count: count))
-        }
+        return records(in: UnsafeRawBufferPointer(start: start, count: Int(size)))
     }
 }
 #endif

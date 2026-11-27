@@ -90,8 +90,8 @@ MOCKING = "mockable/Mockable"
 
 # (name, group, description, dependencies)
 MODULES = [
-    # Example
-    ("Greetings", "Example", "Greeting: a greeting composed from a name and modifiers. Replace with the first real module.", []),
+    # Discovery
+    ("LinkerSets", "Discovery", "LinkerSetRecord and LinkerSetKind: the record every linker-set entry is, and the kind that tags it.", []),
 ]
 
 # Modules only iOS builds: SwiftUI views and what they draw with. Bazel builds them for the
@@ -182,8 +182,7 @@ EXECUTABLES = [
 # Test targets. SwiftPM rejects a target with no sources, so list a target only once its directory
 # holds tests. (name, dependencies)
 TEST_TARGETS = [
-    ("GreetingsTests", ["Greetings", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
-    (f"{PROJECT}Tests", [PROJECT]),
+    (f"{PROJECT}Tests", [PROJECT, TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
 ]
 
 # The modules the test-support target depends on (fixtures are usually written against the

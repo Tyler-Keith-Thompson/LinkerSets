@@ -4,7 +4,7 @@
 
     python3 scripts/wasi_test.py                     # every test target, debug
     python3 scripts/wasi_test.py -c release          # every test target, release
-    python3 scripts/wasi_test.py --targets GreetingsTests
+    python3 scripts/wasi_test.py --targets LinkerSetsTests
 
 Needs swiftly with the Swift toolchain `--swift` (default 6.4.3), its Swift SDK for WebAssembly
 `--sdk` (`swift sdk list`; the install command is on swift.org, "Getting Started with Swift SDKs

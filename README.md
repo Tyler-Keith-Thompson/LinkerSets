@@ -31,13 +31,11 @@ dependencies: [
 ],
 ```
 
-Then add a product to your target, either the umbrella or individual modules:
+Then add the product to your target:
 
 ```swift
 .target(name: "MyApp", dependencies: [
     .product(name: "LinkerSets", package: "LinkerSets"),
-    // or, for example:
-    // .product(name: "Greetings", package: "LinkerSets"),
 ]),
 ```
 
@@ -45,18 +43,24 @@ Then add a product to your target, either the umbrella or individual modules:
 
 Every example here is a test in `Tests/LinkerSetsTests`, so it cannot drift from the code.
 
+A client tags its records with a kind of its own, four ASCII characters read as a 32-bit integer:
+
 ```swift
 import LinkerSets
 
-let greeting = try Greeting(name: "Ada").formal().punctuated(with: "!")
-print(greeting.text)  // Good day, Ada!
+extension LinkerSetKind {
+    /// Records of routes, `"rout"`.
+    static let routes = LinkerSetKind(rawValue: 0x726F_7574)
+}
+
+let size = MemoryLayout<LinkerSetRecord>.size  // 32 where pointers are 64 bits, 20 where they are 32
 ```
 
 ## Modules
 
 | Module | Holds |
 |---|---|
-| `Greetings` | `Greeting`: a greeting composed from a name and modifiers |
+| `LinkerSets` | `LinkerSetRecord`, the record every linker-set entry is, and `LinkerSetKind`, the kind that tags it |
 
 ## Development
 

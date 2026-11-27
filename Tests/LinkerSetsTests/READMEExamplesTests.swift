@@ -3,11 +3,19 @@
 import LinkerSets
 import Testing
 
+extension LinkerSetKind {
+    /// Records of routes, `"rout"`.
+    static let routes = LinkerSetKind(rawValue: 0x726F_7574)
+}
+
 @Suite("README examples")
 struct READMEExamplesTests {
     @Test("Usage")
-    func usage() throws {
-        let greeting = try Greeting(name: "Ada").formal().punctuated(with: "!")
-        #expect(greeting.text == "Good day, Ada!")
+    func usage() {
+        let size = MemoryLayout<LinkerSetRecord>.size
+        #expect(LinkerSetKind.routes.rawValue == 0x726F_7574)
+        #if _pointerBitWidth(_64)
+        #expect(size == 32)
+        #endif
     }
 }

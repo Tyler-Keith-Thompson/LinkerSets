@@ -1,0 +1,63 @@
+/// One entry in a linker set: a record an attached macro places in the section LinkerSets owns.
+///
+/// The layout is Swift Testing's test-content record, field for field, so tools that read one
+/// can read the other:
+///
+/// | Field | Type | 64-bit offset | 32-bit offset |
+/// |---|---|---|---|
+/// | `kind` | `UInt32` | 0 | 0 |
+/// | reserved | `UInt32` | 4 | 4 |
+/// | `accessor` | C function pointer | 8 | 8 |
+/// | `context` | `UInt` | 16 | 12 |
+/// | reserved | `UInt` | 24 | 16 |
+///
+/// A record is 32 bytes with 8-byte alignment where pointers are 64 bits, and 20 bytes with
+/// 4-byte alignment where they are 32 bits (watchOS's arm64_32, wasm32). Records sit back to back
+/// in the section, one ``LinkerSetRecord/Literal`` per declaration, and are read in place as
+/// `LinkerSetRecord` values; the two types have the same layout.
+@frozen
+public struct LinkerSetRecord {
+    /// The function that produces a record's value.
+    ///
+    /// It writes the value into `outValue`, which points to uninitialized memory of the type
+    /// `type` points to, and returns `true`; it returns `false` and writes nothing when it has no
+    /// value of that type, or when `hint` (a kind-specific filter, or `nil`) rules it out.
+    /// `reserved` is zero.
+    public typealias Accessor = @convention(c) (
+        _ outValue: UnsafeMutableRawPointer,
+        _ type: UnsafeRawPointer,
+        _ hint: UnsafeRawPointer?,
+        _ reserved: UInt
+    ) -> Bool
+
+    /// A record as a macro writes it: a tuple of the record's fields, in order.
+    ///
+    /// A global placed with `@section` must be initialized by a constant expression, which allows
+    /// tuples of literals and function references but neither a struct's initializer nor an
+    /// optional, so the macros emit this tuple, with a non-optional accessor and zero reserved
+    /// fields:
+    ///
+    /// ```swift
+    /// let record: LinkerSetRecord.Literal = (0x726F_7574, 0, { outValue, type, hint, reserved in false }, 0, 0)
+    /// ```
+    // A tuple rather than a struct because SE-0492's constant expressions take no initializer
+    // calls; `LinkerSetRecord` is the struct the run-time API reads the same bytes as.
+    public typealias Literal = (
+        kind: UInt32,
+        reserved1: UInt32,
+        accessor: Accessor,
+        context: UInt,
+        reserved2: UInt
+    )
+
+    /// The client this record belongs to.
+    public let kind: LinkerSetKind
+    @usableFromInline let reserved1: UInt32
+    /// The function that produces this record's value, or `nil` for a slot holding no record
+    /// (the zero padding a linker may leave between records).
+    public let accessor: Accessor?
+    /// A word the record's kind gives meaning to, such as flags or a hash of its name; zero when
+    /// the kind uses none.
+    public let context: UInt
+    @usableFromInline let reserved2: UInt
+}

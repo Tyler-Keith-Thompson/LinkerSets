@@ -9,18 +9,20 @@ enumerates every record of one kind in a deterministic order. Each record carrie
 clients share the mechanism without seeing each other's records. Failures are typed errors; the
 run-time API never traps.
 
-`import LinkerSets` imports every module. Each module also has its own documentation and can be
-imported on its own.
+A client tags its records with a kind of its own, four ASCII characters read as a 32-bit integer:
 
 ```swift
 import LinkerSets
 
-let greeting = try Greeting(name: "Ada").formal().punctuated(with: "!")
-print(greeting.text)  // Good day, Ada!
+extension LinkerSetKind {
+    /// Records of routes, `"rout"`.
+    static let routes = LinkerSetKind(rawValue: 0x726F_7574)
+}
 ```
 
 ## Topics
 
-### Modules
+### Records
 
-- ``/Greetings``
+- ``LinkerSetRecord``
+- ``LinkerSetKind``

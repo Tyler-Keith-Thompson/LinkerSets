@@ -24,11 +24,11 @@ build:
 test:
     {{BAZEL}} test //...
 
-[doc('Run one test target, e.g. just test-one //Tests/GreetingsTests')]
+[doc('Run one test target, e.g. just test-one //Tests/LinkerSetsTests')]
 test-one target:
     {{BAZEL}} test {{target}}
 
-[doc('Run tests matching a filter, e.g. just filter Greeting')]
+[doc('Run tests matching a filter, e.g. just filter LinkerSetRecord')]
 filter pattern:
     {{BAZEL}} test //... --test_filter={{pattern}}
 
@@ -78,11 +78,11 @@ docs:
     rm -rf {{PROJECT_ROOT}}/.build/docs && mkdir -p {{PROJECT_ROOT}}/.build
     cp -RL {{PROJECT_ROOT}}/bazel-bin/docs {{PROJECT_ROOT}}/.build/docs && chmod -R u+w {{PROJECT_ROOT}}/.build/docs
 
-[doc('Mutation testing: plant the bugs in scripts/mutants/<Module>.py and check the tests catch each, e.g. just mutate Greetings, or just mutate Greetings --all')]
+[doc('Mutation testing: plant the bugs in scripts/mutants/<Module>.py and check the tests catch each, e.g. just mutate LinkerSets, or just mutate LinkerSets --all')]
 mutate module *args="":
     python3 {{PROJECT_ROOT}}/scripts/mutate.py {{module}} {{args}}
 
-[doc('SwiftPM tests on wasm32-wasi under wasmtime, a 32-bit Int, in groups of targets, e.g. just wasi-test, just wasi-test -c release, or just wasi-test --targets GreetingsTests')]
+[doc('SwiftPM tests on wasm32-wasi under wasmtime, a 32-bit Int, in groups of targets, e.g. just wasi-test, just wasi-test -c release, or just wasi-test --targets LinkerSetsTests')]
 wasi-test *args="":
     python3 -u {{PROJECT_ROOT}}/scripts/wasi_test.py {{args}}
 

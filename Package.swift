@@ -23,7 +23,6 @@ func testExcludes(_ excludes: [String], wasi exitTestFiles: [String]) -> [String
 // the type checker.
 let products: [Product] = [
     .library(name: "LinkerSets", targets: ["LinkerSets"]),
-    .library(name: "Greetings", targets: ["Greetings"]),
 ]
 
 let dependencies: [Package.Dependency] = [
@@ -32,17 +31,13 @@ let dependencies: [Package.Dependency] = [
 ]
 
 let targets: [Target] = [
-    // Example
-    .target(name: "Greetings", exclude: bazelFiles),
-
-    // Umbrella: `import LinkerSets` imports every module.
-    .target(name: "LinkerSets", dependencies: ["Greetings"], exclude: bazelFiles),
+    // Discovery
+    .target(name: "LinkerSets", exclude: bazelFiles),
 
     // Shared fixtures (data only) for every test target.
     .target(name: "LinkerSetsTestSupport", path: "Tests/LinkerSetsTestSupport", exclude: bazelFiles),
 
-    .testTarget(name: "GreetingsTests", dependencies: ["Greetings", "LinkerSetsTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng"), .product(name: "Sampling", package: "swiftprng")], exclude: testExcludes(bazelFiles, wasi: [])),
-    .testTarget(name: "LinkerSetsTests", dependencies: ["LinkerSets"], exclude: testExcludes(bazelFiles, wasi: [])),
+    .testTarget(name: "LinkerSetsTests", dependencies: ["LinkerSets", "LinkerSetsTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng"), .product(name: "Sampling", package: "swiftprng")], exclude: testExcludes(bazelFiles, wasi: [])),
 ]
 
 let package = Package(

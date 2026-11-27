@@ -3,14 +3,11 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Umbrella: `import LinkerSets` imports every module.
+# LinkerSetRecord and LinkerSetKind: the record every linker-set entry is, and the kind that tags it.
 swift_library(
     name = "LinkerSets",
     srcs = glob(["**/*.swift"]),
     module_name = "LinkerSets",
-    deps = [
-        "//Sources/Greetings",
-    ],
     visibility = ["//visibility:public"],
 )
 
@@ -19,9 +16,6 @@ docc_archive(
     name = "LinkerSetsDocumentation",
     module = ":LinkerSets",
     catalog = glob(["*.docc/**"], allow_empty = True),
-    deps = [
-        "//Sources/Greetings:GreetingsDocumentation",
-    ],
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )

@@ -14,6 +14,9 @@ struct LinkerSetMacroDiagnostic: DiagnosticMessage, Error {
         case unnamedVariable
         case genericFunction
         case genericType
+        case memberOfGenericType
+        case protocolRequirement
+        case localDeclaration
     }
 
     let reason: Reason
@@ -38,6 +41,12 @@ struct LinkerSetMacroDiagnostic: DiagnosticMessage, Error {
             "'\(macroName)' cannot apply to a generic function: a record holds one concrete value"
         case .genericType:
             "'\(macroName)' cannot apply to a generic type: a record holds one concrete type"
+        case .memberOfGenericType:
+            "'\(macroName)' cannot apply to a member of a generic type: a record holds one concrete value"
+        case .protocolRequirement:
+            "'\(macroName)' cannot apply to a protocol's requirement: a record holds a value, and a requirement has none of its own"
+        case .localDeclaration:
+            "'\(macroName)' applies at file scope or in a type, not inside a function, closure or accessor: a record is a global"
         }
     }
 

@@ -1,7 +1,8 @@
 /// Declares a record of `kind` whose value is this declaration's.
 ///
 /// Attach it to a static property, a global variable, a static function, a free function, or a
-/// struct, enum, class or actor that isn't generic. The macro adds a `@used` peer, placed with
+/// struct, enum, class or actor that isn't generic, at file scope or in a type that isn't
+/// generic. Anything else is a compile-time error that says why. The macro adds a `@used` peer, placed with
 /// `@section` in the section LinkerSets owns, whose accessor produces the variable's value, the
 /// function itself as a value of its function type, or the type's metatype as `Any.Type`. A
 /// ``LinkerSet`` of the same kind and value type finds it at run time:

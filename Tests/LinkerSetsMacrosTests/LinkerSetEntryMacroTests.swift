@@ -183,6 +183,13 @@ struct LinkerSetEntryMacroTests {
         ("struct S {\n    @LinkerSetEntry(kind: 1)\n    func f() {}\n}", "'@LinkerSetEntry' applies to static members only: a record has no instance to read", 2, 5, "struct S {\n    func f() {}\n}"),
         ("@LinkerSetEntry(kind: 1)\nlet (a, b) = (1, 2)", "'@LinkerSetEntry' applies to a variable with a name, not a tuple pattern", 1, 1, "let (a, b) = (1, 2)"),
         ("@LinkerSetEntry(kind: 1)\nfunc f<T>(_ value: T) {}", "'@LinkerSetEntry' cannot apply to a generic function: a record holds one concrete value", 1, 1, "func f<T>(_ value: T) {}"),
+        ("struct Box<T> {\n    @LinkerSetEntry(kind: 1)\n    static let a = 1\n}", "'@LinkerSetEntry' cannot apply to a member of a generic type: a record holds one concrete value", 2, 5, "struct Box<T> {\n    static let a = 1\n}"),
+        ("enum Outer<T> {\n    enum Inner {\n        @LinkerSetEntry(kind: 1)\n        static func f() {}\n    }\n}", "'@LinkerSetEntry' cannot apply to a member of a generic type: a record holds one concrete value", 3, 9, "enum Outer<T> {\n    enum Inner {\n        static func f() {}\n    }\n}"),
+        ("class Box<T> {\n    @LinkerSetEntry(kind: 1)\n    struct Inner {}\n}", "'@LinkerSetEntry' cannot apply to a member of a generic type: a record holds one concrete value", 2, 5, "class Box<T> {\n    struct Inner {}\n}"),
+        ("protocol P {\n    @LinkerSetEntry(kind: 1)\n    static func f()\n}", "'@LinkerSetEntry' cannot apply to a protocol's requirement: a record holds a value, and a requirement has none of its own", 2, 5, "protocol P {\n    static func f()\n}"),
+        ("func f() {\n    @LinkerSetEntry(kind: 1)\n    let a = 1\n}", "'@LinkerSetEntry' applies at file scope or in a type, not inside a function, closure or accessor: a record is a global", 2, 5, "func f() {\n    let a = 1\n}"),
+        ("let c = {\n    @LinkerSetEntry(kind: 1)\n    func g() {}\n}", "'@LinkerSetEntry' applies at file scope or in a type, not inside a function, closure or accessor: a record is a global", 2, 5, "let c = {\n    func g() {}\n}"),
+        ("func f() {\n    struct Local {\n        @LinkerSetEntry(kind: 1)\n        static let a = 1\n    }\n}", "'@LinkerSetEntry' applies at file scope or in a type, not inside a function, closure or accessor: a record is a global", 3, 9, "func f() {\n    struct Local {\n        static let a = 1\n    }\n}"),
     ] as [(String, String, Int, Int, String)])
     func refused(source: String, expectedMessage: String, line: Int, column: Int, expectedSource: String) {
         assertMacroExpansion(

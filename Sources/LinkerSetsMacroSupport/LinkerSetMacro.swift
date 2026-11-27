@@ -30,8 +30,13 @@ import SwiftSyntaxBuilder
 ///   ``requiredConformance(of:)`` names a protocol `P`, which the type must then conform to or the
 ///   expansion doesn't compile, and `Any.Type` otherwise.
 ///
-/// It diagnoses anything else, and generic functions and types. Before swift-syntax 600 a macro
-/// can't see its lexical context, so a type it registers must be declared at file scope there.
+/// It diagnoses anything else, each with a message of its own: generic functions and types,
+/// members of generic types, instance members, protocol requirements, declarations inside a
+/// function, closure or accessor, and a kind that isn't a 32-bit literal other than 0.
+///
+/// Before swift-syntax 600 a macro can't see its lexical context. There a type it registers must
+/// be declared at file scope, and the compiler, not the macro, refuses a local declaration or a
+/// member of a generic type, with an error in the expansion.
 public protocol LinkerSetMacro: PeerMacro {
     /// The kind of the record that `attribute` declares, from 1 through `UInt32.max`.
     ///
@@ -69,11 +74,12 @@ extension LinkerSetMacro {
         let kind = try kind(of: node)
         guard kind != 0 else { throw LinkerSetMacroDiagnostic.error(.kindZero, at: node, macroName: macroName) }
         #if canImport(SwiftSyntax600)
+        try requireRecordableScope(context.lexicalContext, of: declaration, macroName: macroName)
         let isMember = context.lexicalContext.first?.isTypeScope ?? false
         #else
         // A macro sees its lexical context from swift-syntax 600 on. Before it, `static` marks a
-        // member (a global can't take it), and an instance member is left for the compiler to
-        // refuse in the expansion.
+        // member (a global can't take it), and an instance member, a local declaration and a
+        // member of a generic type are left for the compiler to refuse in the expansion.
         let isMember = declaration.asProtocol(WithModifiersSyntax.self)?.modifiers.isStatic ?? false
         #endif
         let value = try value(of: declaration, isMember: isMember, attribute: node, macroName: macroName)
@@ -90,6 +96,24 @@ extension LinkerSetMacro {
             """,
         ]
     }
+
+    #if canImport(SwiftSyntax600)
+    /// Refuses a declaration whose scope a record can't reach: inside a function, closure or
+    /// accessor (a record is a global, and a local has no address until its scope runs), in a
+    /// protocol (a requirement has no value of its own), or in a generic type (a record holds
+    /// one concrete value). `lexicalContext` runs from the innermost scope out.
+    private static func requireRecordableScope(_ lexicalContext: [Syntax], of declaration: some DeclSyntaxProtocol, macroName: String) throws {
+        if lexicalContext.contains(where: { !$0.isTypeScope }) {
+            throw LinkerSetMacroDiagnostic.error(.localDeclaration, at: declaration, macroName: macroName)
+        }
+        if lexicalContext.first?.is(ProtocolDeclSyntax.self) == true {
+            throw LinkerSetMacroDiagnostic.error(.protocolRequirement, at: declaration, macroName: macroName)
+        }
+        if lexicalContext.contains(where: { NominalType($0)?.isGeneric == true }) {
+            throw LinkerSetMacroDiagnostic.error(.memberOfGenericType, at: declaration, macroName: macroName)
+        }
+    }
+    #endif
 
     /// The expression the record's accessor stores: the variable; the function as a value of its
     /// function type, named with its argument labels so an overload can't be mistaken for it; or
@@ -147,7 +171,7 @@ private struct NominalType {
     let isGeneric: Bool
 
     /// The type `declaration` declares, or `nil` when it declares none of the four.
-    init?(_ declaration: some DeclSyntaxProtocol) {
+    init?(_ declaration: some SyntaxProtocol) {
         if let decl = declaration.as(StructDeclSyntax.self) {
             (name, isGeneric) = (decl.name.trimmed, decl.genericParameterClause != nil)
         } else if let decl = declaration.as(EnumDeclSyntax.self) {

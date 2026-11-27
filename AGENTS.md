@@ -259,6 +259,11 @@ Every shell command gets a timeout. macOS has no `timeout`; use
   push to `main` that touches the paths it lists (the COFF reader, the section walk, the macro's
   expansion, `Package.swift`), and by hand with `gh workflow run Windows`. Add a file to its paths
   when Windows starts compiling it differently.
+- FreeBSD is checked the same way by `.github/workflows/freebsd.yml` alone: SwiftPM in a FreeBSD 14
+  VM on an Ubuntu runner, debug and release, with swift.org's FreeBSD development preview, since no
+  Swift release ships for FreeBSD yet. It runs on a push to `main` that touches the ELF reader, the
+  section walk, the record's expansion or `Package.swift`, and by hand with
+  `gh workflow run FreeBSD`.
 - CI's Bazel jobs run in `ghcr.io/tyler-keith-thompson/swift-bazel:<swift>-<bazel>`, Swift with
   the Bazel in `.bazelversion` already in it, built by the project template's `ci-image/build.sh`.
   Changing `.bazelversion` or the workflows' Swift version means a new tag from there.

@@ -14,7 +14,7 @@ extension LinkerSetSection {
         // K32EnumProcessModules (psapi, exported by kernel32) lists the loaded modules, the
         // program and its DLLs, as dyld's image list does on Apple platforms; each module's
         // handle is its base address, where its PE headers begin. No symbol is looked up by name.
-        modules().flatMap { base in
+        modules().flatMap { (base: UnsafeRawPointer) -> [LinkerSetRecord] in
             // A module freed after the list was taken would leave `base` pointing at unmapped
             // memory. GetModuleHandleExW takes a reference on the module mapped at that address, if
             // one still is, so it stays mapped while its headers are read; FreeLibrary drops it.

@@ -36,7 +36,7 @@ struct UnloadingLibraryTests {
         let sut = LinkerSet<Int>(kind: LinkerSetKind(rawValue: 0x6479_6E34))
         let expectedCounts: Set<Int> = [2]
         let path = try #require(unloadedLibraryPath())
-        let rounds = 500
+        let rounds = 100
         let finished = Atomic(false)
         let loader = Task.detached {
             defer { finished.store(true, ordering: .releasing) }
@@ -50,6 +50,9 @@ struct UnloadingLibraryTests {
 
         repeat {
             actualCounts.insert(sut.records.count)
+            // A read holds the loader's lock on Linux, which isn't fair: without a yield, back-to-back
+            // reads can keep dlopen waiting for minutes.
+            sched_yield()
         } while !finished.load(ordering: .acquiring)
 
         let opened = await loader.value

@@ -2,7 +2,7 @@
 // ExampleMigrations' @Migration, ExampleEvents' @Event), find their own records and never each
 // other's. Each test is self-contained.
 
-#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm)
+#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm) || objectFormat(COFF)
 import ExampleEvents
 import ExampleMigrations
 import ExampleRoutes

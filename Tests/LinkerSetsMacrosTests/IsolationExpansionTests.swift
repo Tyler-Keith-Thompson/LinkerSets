@@ -44,6 +44,10 @@ struct IsolationExpansionTests {
                 @section("linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Self.show as @MainActor () -> Void, into: outValue, ifAsked: type)
                     }, 0, 0)
+                #elseif objectFormat(COFF)
+                @section(".lnkset$M") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
+                        LinkerSets.LinkerSetRecord.__store(Self.show as @MainActor () -> Void, into: outValue, ifAsked: type)
+                    }, 0, 0)
                 #endif
             }
             """
@@ -83,6 +87,10 @@ struct IsolationExpansionTests {
                         }, 0, 0))
                 #elseif objectFormat(Wasm)
                 @section("linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
+                        LinkerSets.LinkerSetRecord.__store(Self.open as @MainActor () -> Void, into: outValue, ifAsked: type)
+                    }, 0, 0)
+                #elseif objectFormat(COFF)
+                @section(".lnkset$M") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Self.open as @MainActor () -> Void, into: outValue, ifAsked: type)
                     }, 0, 0)
                 #endif
@@ -127,6 +135,10 @@ struct IsolationExpansionTests {
                 @section("linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Self.close as @MainActor () -> Void, into: outValue, ifAsked: type)
                     }, 0, 0)
+                #elseif objectFormat(COFF)
+                @section(".lnkset$M") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
+                        LinkerSets.LinkerSetRecord.__store(Self.close as @MainActor () -> Void, into: outValue, ifAsked: type)
+                    }, 0, 0)
                 #endif
             }
             """
@@ -169,6 +181,10 @@ struct IsolationExpansionTests {
                 @section("linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Self.describe as () -> String, into: outValue, ifAsked: type)
                     }, 0, 0)
+                #elseif objectFormat(COFF)
+                @section(".lnkset$M") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
+                        LinkerSets.LinkerSetRecord.__store(Self.describe as () -> String, into: outValue, ifAsked: type)
+                    }, 0, 0)
                 #endif
             }
             """
@@ -209,6 +225,10 @@ struct IsolationExpansionTests {
                         }, 0, 0))
                 #elseif objectFormat(Wasm)
                 @section("linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
+                        LinkerSets.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
+                    }, 0, 0)
+                #elseif objectFormat(COFF)
+                @section(".lnkset$M") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
                     }, 0, 0)
                 #endif

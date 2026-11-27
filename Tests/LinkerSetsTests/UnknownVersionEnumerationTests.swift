@@ -2,7 +2,7 @@
 // section: enumeration skips it rather than call an accessor whose contract it doesn't know. Kind
 // "lsv1" belongs to this file alone.
 
-#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm)
+#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm) || objectFormat(COFF)
 @testable import LinkerSets
 import Testing
 
@@ -25,6 +25,11 @@ private let newerLayoutRecord: LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110,
 }, 0, 0))
 #elseif objectFormat(Wasm)
 @section("linker_sets") @used
+private let newerLayoutRecord: LinkerSetRecord.Literal = (0x6C73_7631, 1, { outValue, type, _, _ in
+    LinkerSetRecord.__store(42, into: outValue, ifAsked: type)
+}, 0, 0)
+#elseif objectFormat(COFF)
+@section(".lnkset$M") @used
 private let newerLayoutRecord: LinkerSetRecord.Literal = (0x6C73_7631, 1, { outValue, type, _, _ in
     LinkerSetRecord.__store(42, into: outValue, ifAsked: type)
 }, 0, 0)

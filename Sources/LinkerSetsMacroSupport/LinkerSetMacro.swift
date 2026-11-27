@@ -111,6 +111,8 @@ extension LinkerSetMacro {
             @section(".note.linker_sets") @used \(raw: storage) \(name): LinkerSets.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), \(record))
             #elseif objectFormat(Wasm)
             @section("linker_sets") @used \(raw: storage) \(name): LinkerSets.LinkerSetRecord.Literal = \(record)
+            #elseif objectFormat(COFF)
+            @section(".lnkset$M") @used \(raw: storage) \(name): LinkerSets.LinkerSetRecord.Literal = \(record)
             #endif
             """,
         ]

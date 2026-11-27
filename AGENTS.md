@@ -16,8 +16,9 @@ It optimizes for discovery that cannot break. It works on macOS, iOS, tvOS, watc
 uses only the format's documented mechanisms: Mach-O sections through the loader's image list and
 `getsectiondata`, ELF records as notes in a `PT_NOTE` segment found through `dl_iterate_phdr`
 (which sees every loaded image, where `__start_`/`__stop_` symbols bound only their own),
-WebAssembly sections through linker-defined `__start_`/`__stop_` symbols, COFF through grouped
-sections (`$A`/`$M`/`$Z`). It must survive release builds, dead stripping,
+WebAssembly sections through linker-defined `__start_`/`__stop_` symbols, COFF through a grouped
+section (`.lnkset$M`) found in each module's PE section table, modules listed by
+`K32EnumProcessModules`. It must survive release builds, dead stripping,
 static and dynamic linking, and code loaded later (`dlopen`), with a test for each. It never scans
 Swift's runtime metadata (conformance or type metadata records), uses build plugins that scan
 source text, looks up symbols by name with `dlsym`, or calls Apple private API. A platform where
@@ -252,6 +253,11 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 - Run suites through Bazel, not `swift test --filter`.
 - First-party warnings are errors (`tools/swift_rules.bzl`); dependencies build quietly. Fix the
   warning, never suppress it. DocC's are too: `just docs` fails on a link that doesn't resolve.
+- Windows is checked by `.github/workflows/windows.yml` alone (SwiftPM on `windows-latest`, warnings
+  in this repository's sources failing it): no Mac or Linux host builds for Windows. It runs on a
+  push to `main` that touches the paths it lists (the COFF reader, the section walk, the macro's
+  expansion, `Package.swift`), and by hand with `gh workflow run Windows`. Add a file to its paths
+  when Windows starts compiling it differently.
 - CI's Bazel jobs run in `ghcr.io/tyler-keith-thompson/swift-bazel:<swift>-<bazel>`, Swift with
   the Bazel in `.bazelversion` already in it, built by the project template's `ci-image/build.sh`.
   Changing `.bazelversion` or the workflows' Swift version means a new tag from there.

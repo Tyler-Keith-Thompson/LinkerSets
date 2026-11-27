@@ -12,7 +12,7 @@ them at run time. None reads Swift's runtime metadata or looks a symbol up by na
 | macOS, iOS, tvOS, watchOS, visionOS, Mac Catalyst | `__DATA_CONST,__linker_sets` | The loader's image list (`_dyld_image_count`, `_dyld_get_image_header`) and `getsectiondata` in each image |
 | Linux, Android, FreeBSD | `.note.linker_sets`, each record an ELF note | `dl_iterate_phdr` and each image's `PT_NOTE` segments |
 | WebAssembly (WASI) | `linker_sets` | Between the `__start_linker_sets` and `__stop_linker_sets` symbols wasm-ld defines |
-| Windows | | Not yet: ``LinkerSet`` isn't available there |
+| Windows | `.lnkset$M`, merged by the linker into `.lnkset` | `K32EnumProcessModules` and each module's PE section table, skipping the zero padding the linker may put between contributions |
 
 ### What is tested where
 
@@ -27,6 +27,7 @@ them at run time. None reads Swift's runtime metadata or looks a symbol up by na
 | watchOS devices, 32-bit arm64_32, compiled | `LinkerSetRecordLayoutTests` (the 20-byte record) | `just apple-test` |
 | Linux, static, shared and `dlopen`ed libraries, debug and release | The same targets as macOS, and `LinkerSetNoteTests` (the note walk) | CI's Linux Bazel and SwiftPM jobs |
 | WebAssembly, a 32-bit `Int`, debug and release | `LinkerSetsTests`, `LinkerSetsPerformanceTests` | `just wasi-test`, `just wasi-test -c release` |
+| Windows, modules linked statically | `LinkerSetsTests`, `LinkerSetsPerformanceTests`, and `LinkerSetPaddedSectionTests` (the padding walk, on every platform) | CI's Windows workflow, when Windows code changes |
 | Android, FreeBSD | Untested; the same reader as Linux | |
 
 A WebAssembly program is one statically linked module, so it has no shared libraries to search.

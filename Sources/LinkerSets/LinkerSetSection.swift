@@ -13,4 +13,29 @@ enum LinkerSetSection {
             bytes.loadUnaligned(fromByteOffset: index * stride, as: LinkerSetRecord.self)
         }
     }
+
+    /// The records in `bytes`, a section the linker may have padded with zeros between the
+    /// contributions of different object files, in order.
+    ///
+    /// Padding comes in multiples of a record's alignment, so the walk steps one alignment at a
+    /// time over a zero kind and one record at a time over anything else. A record's kind is
+    /// never 0 (the macros refuse it), so a zero kind is padding or an empty slot, and neither
+    /// holds a record. Trailing bytes too few for a record are left out.
+    ///
+    /// - Complexity: O(*n*) in the section's size.
+    static func records(skippingPadding bytes: UnsafeRawBufferPointer) -> [LinkerSetRecord] {
+        let stride = MemoryLayout<LinkerSetRecord>.stride
+        let alignment = MemoryLayout<LinkerSetRecord>.alignment
+        var records: [LinkerSetRecord] = []
+        var offset = 0
+        while offset + stride <= bytes.count {
+            if bytes.loadUnaligned(fromByteOffset: offset, as: UInt32.self) == 0 {
+                offset += alignment
+            } else {
+                records.append(bytes.loadUnaligned(fromByteOffset: offset, as: LinkerSetRecord.self))
+                offset += stride
+            }
+        }
+        return records
+    }
 }

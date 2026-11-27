@@ -3,7 +3,7 @@
 // speed-reliant: these sit in Performance/ because that target is the one release builds run.
 // Each test is self-contained and fails if the linker dropped a module's records.
 
-#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm)
+#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm) || objectFormat(COFF)
 import ExampleEvents
 import ExampleMigrations
 import ExampleRoutes

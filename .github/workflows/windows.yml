@@ -1,0 +1,48 @@
+name: Windows
+
+# Builds and tests the SwiftPM package on Windows, where records are read from each module's PE
+# section table (Sources/LinkerSets/LinkerSetSection+COFF.swift). No Mac or Linux host can build
+# for Windows, so this is the only check of that code; it runs when the code Windows compiles
+# differently changes, not on every push.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*COFF*'
+      - 'Sources/LinkerSets/LinkerSetSection.swift'
+      - 'Sources/LinkerSets/LinkerSet.swift'
+      - 'Sources/LinkerSetsMacroSupport/LinkerSetMacro.swift'
+      - 'Package.swift'
+      - '.github/workflows/windows.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: compnerd/gha-setup-swift@v0.5.1
+        with:
+          swift-version: swift-6.4.3-release
+          swift-build: 6.4.3-RELEASE
+      - uses: actions/checkout@v7
+      - name: Build
+        shell: bash
+        run: |
+          swift build --build-tests 2>&1 | tee build.log
+          test "${PIPESTATUS[0]}" -eq 0
+      # First-party warnings are errors, as in the Bazel build; a dependency's are left alone.
+      - name: No warnings in this repository's sources
+        shell: bash
+        run: |
+          if grep -E '[\\/](Sources|Tests)[\\/][^:]*\.swift:[0-9]+:[0-9]+: warning:' build.log | grep -v '[\\/]\.build[\\/]'; then
+            exit 1
+          fi
+      - name: Test
+        shell: bash
+        run: swift test --skip-build

@@ -143,7 +143,7 @@ same layout as Swift Testing's, but the library doesn't depend on it.
 | iOS, tvOS, watchOS, visionOS, Mac Catalyst | Tested in the iOS, tvOS, watchOS and visionOS simulators and on Mac Catalyst; built for watchOS devices, including the 32-bit arm64_32 |
 | Android, FreeBSD | Same reader as Linux; not yet tested |
 | WebAssembly (WASI) | Supported and tested under wasmtime, in debug and release builds; a WebAssembly program is one statically linked module |
-| Windows | Not yet: `LinkerSet` isn't available there |
+| Windows | Supported and tested in CI (`windows-latest`), across statically linked modules |
 
 A record is only in the program if its module is. SwiftPM and Bazel link every module a target
 depends on. A build that leaves out a static library's modules when nothing calls into them needs

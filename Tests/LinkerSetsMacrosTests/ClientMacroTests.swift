@@ -40,6 +40,10 @@ struct ClientMacroTests {
                 @section("linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x726F7574, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
                     }, 0, 0)
+                #elseif objectFormat(COFF)
+                @section(".lnkset$M") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x726F7574, 0, { outValue, type, _, _ in
+                        LinkerSets.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
+                    }, 0, 0)
                 #endif
             }
             """

@@ -2,7 +2,7 @@
 // @MainActor function type, called on the main actor, and a let of a @MainActor type as its value.
 // Kinds "lsm1" through "lsm3" belong to this file alone.
 
-#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm)
+#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm) || objectFormat(COFF)
 import LinkerSets
 import Testing
 

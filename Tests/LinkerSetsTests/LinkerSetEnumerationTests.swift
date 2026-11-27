@@ -1,7 +1,7 @@
 // Records declared with @LinkerSetEntry, found again by each object format's reader. Kinds
 // "lsa1" through "lsa4" belong to this file alone; each test reads the records itself.
 
-#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm)
+#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm) || objectFormat(COFF)
 import Generators
 @testable import LinkerSets
 import LinkerSetsTestSupport

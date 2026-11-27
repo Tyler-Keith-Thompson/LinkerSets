@@ -13,4 +13,5 @@ EXAMPLE_PACKAGES = [
     "Sources/ExampleDynamicPlugins",
     "Sources/ExampleLoadedPlugins",
     "Sources/ExampleCatalog",
+    "Sources/ExampleRoutesKind",
 ]

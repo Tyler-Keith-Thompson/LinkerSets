@@ -16,8 +16,7 @@ BUILD.bazel leaves out of the test bundles by name and no Package.swift target h
         size = "small",
         src = "NonCodableProperty.swift",
         expected_errors = ["error: ..."],
-        plugin = "//Sources/<Plugin>",
-        plugin_module_name = "<Plugin>",
+        plugins = {"//Sources/<Plugin>": "<Plugin>"},
         tags = ["debug-only"],
         deps = ["//Sources/<Module>"],
     )
@@ -95,10 +94,10 @@ def _swift_compile_failure_test_impl(ctx):
                     # the others'.
                     arguments += ["-Xcc", "-I" + ("../" + include.removeprefix("external/") if include.startswith("external/") else include)]
     arguments = ["-I " + _quote(directory) for directory in directories] + [_quote(argument) for argument in arguments]
-    if ctx.attr.plugin:
-        plugin = ctx.executable.plugin
+    for target, module_name in ctx.attr.plugins.items():
+        plugin = target[DefaultInfo].files_to_run.executable
         files.append(plugin)
-        arguments.append("-load-plugin-executable " + _quote(plugin.short_path + "#" + ctx.attr.plugin_module_name))
+        arguments.append("-load-plugin-executable " + _quote(plugin.short_path + "#" + module_name))
     script = ctx.actions.declare_file(ctx.label.name + ".sh")
     ctx.actions.write(
         script,
@@ -113,8 +112,8 @@ def _swift_compile_failure_test_impl(ctx):
         is_executable = True,
     )
     runfiles = ctx.runfiles(files = files + [ctx.file.src], transitive_files = depset(transitive = transitive_files))
-    if ctx.attr.plugin:
-        runfiles = runfiles.merge(ctx.attr.plugin[DefaultInfo].default_runfiles)
+    for target in ctx.attr.plugins:
+        runfiles = runfiles.merge(target[DefaultInfo].default_runfiles)
     return [DefaultInfo(executable = script, runfiles = runfiles)]
 
 swift_compile_failure_test = rule(
@@ -123,8 +122,10 @@ swift_compile_failure_test = rule(
     attrs = {
         "src": attr.label(allow_single_file = [".swift"], mandatory = True),
         "deps": attr.label_list(providers = [SwiftInfo]),
-        "plugin": attr.label(executable = True, cfg = "exec"),
-        "plugin_module_name": attr.string(doc = "The plugin's module name, which `-load-plugin-executable` pairs with it."),
+        "plugins": attr.label_keyed_string_dict(
+            cfg = "exec",
+            doc = "Compiler plugins to load, each with its module name, which `-load-plugin-executable` pairs with it.",
+        ),
         "expected_errors": attr.string_list(doc = "Text the compiler's output must hold; none for a source that must compile."),
     },
     test = True,

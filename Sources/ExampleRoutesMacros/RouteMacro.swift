@@ -1,3 +1,4 @@
+import ExampleRoutesKind
 import LinkerSetsMacroSupport
 import SwiftCompilerPlugin
 
@@ -11,5 +12,5 @@ struct ExampleRoutesMacrosPlugin: CompilerPlugin {
 
 /// `@Route`: registers a route, a record of kind `"rout"`.
 public enum RouteMacro: LinkerSetMacro {
-    public static func kind(of attribute: AttributeSyntax) -> UInt32 { 0x726F_7574 }
+    public static func kind(of attribute: AttributeSyntax) -> UInt32 { RouteKind.rawValue }
 }

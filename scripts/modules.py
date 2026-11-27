@@ -120,10 +120,11 @@ MODULES = [
     ("LinkerSetsRuntime", "Discovery", "LinkerSet, LinkerSetRecord and LinkerSetKind: the records of one kind found at run time, with no macro or swift-syntax dependency.", []),
     ("LinkerSetsMacroSupport", "Discovery", "LinkerSetMacro: the expansion every linker-set macro shares, for the macro plugins of clients that declare their own kind.", ["swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxBuilder", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftDiagnostics"]),
     # Examples
-    ("ExampleRoutes", "Examples", "A client of LinkerSets: the routes kind and its @Route macro, with routes declared by it.", ["LinkerSetsRuntime", "ExampleRoutesMacros"]),
-    ("ExampleMigrations", "Examples", "A second client of LinkerSets: the migrations kind and its @Migration macro, with migrations declared by it.", ["LinkerSetsRuntime", "ExampleMigrationsMacros"]),
+    ("ExampleRoutes", "Examples", "A client of LinkerSets: the routes kind and its @Route macro, with routes declared by it.", ["LinkerSets", "ExampleRoutesKind", "ExampleRoutesMacros"]),
+    ("ExampleRoutesKind", "Examples", "The routes kind as a number, which ExampleRoutes and its plugin both import.", []),
+    ("ExampleMigrations", "Examples", "A second client of LinkerSets: the migrations kind and its @Migration macro, with migrations declared by it.", ["LinkerSets", "ExampleMigrationsMacros"]),
     ("ExamplePlugins", "Examples", "A client of LinkerSets whose records nothing references: plug-in types found by their kind alone.", ["LinkerSets"]),
-    ("ExampleEvents", "Examples", "A client of LinkerSets that registers types: the events kind, the AnalyticsEvent protocol its @Event macro requires, and events declared by it.", ["LinkerSetsRuntime", "ExampleEventsMacros"]),
+    ("ExampleEvents", "Examples", "A client of LinkerSets that registers types: the events kind, the AnalyticsEvent protocol its @Event macro requires, and events declared by it.", ["LinkerSets", "ExampleEventsMacros"]),
     ("ExampleDynamicPlugins", "Examples", "Records in a shared library the test program links at launch, an image of its own.", ["LinkerSets"]),
     ("ExampleCatalog", "Examples", "A module that only reads records, of ExamplePlugins' and ExampleMigrations' kinds, depending on LinkerSetsRuntime alone.", ["LinkerSetsRuntime"]),
     ("ExampleLoadedPlugins", "Examples", "Records in a shared library the test program opens with dlopen, in the process only once loaded.", ["LinkerSets"]),
@@ -142,7 +143,7 @@ IOS_MINIMUM = "18.0"
 # so neither they nor their dependencies ship in `import LinkerSets`. Only executables, test
 # targets and other example modules may depend on one. A compiler plugin (MACROS) an example module
 # uses is listed here too: plugins ship nothing anyway, and the listing lets only examples use it.
-EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros", "ExampleDynamicPlugins", "ExampleLoadedPlugins", "ExampleCatalog"]
+EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExamplePlugins", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros", "ExampleDynamicPlugins", "ExampleLoadedPlugins", "ExampleCatalog", "ExampleRoutesKind"]
 
 # Example modules also built as shared libraries, by name from EXAMPLE_MODULES: fixtures for tests
 # of code that sits in an image of its own, a library the program links at launch or opens with
@@ -239,7 +240,7 @@ MACROS = [
     ("LinkerSetsMacros", "Discovery", "The attached macros that turn declarations into linker-set records.",
      ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
     ("ExampleRoutesMacros", "Examples", "The example client's plugin: @Route's expansion.",
-     ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
+     ["ExampleRoutesKind", "LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
     ("ExampleMigrationsMacros", "Examples", "The second example client's plugin: @Migration's expansion.",
      ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
     ("ExampleEventsMacros", "Examples", "The third example client's plugin: @Event's expansion, which requires AnalyticsEvent.",

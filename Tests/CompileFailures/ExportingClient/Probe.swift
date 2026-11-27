@@ -1,6 +1,6 @@
-// A client library that re-exports LinkerSetsRuntime, as the LinkerSetsMacroSupport guide shows,
-// with its kind kept internal. Its users' files see the module name the expansion uses.
-@_exported import LinkerSetsRuntime
+// A client library that re-exports LinkerSets, as the LinkerSetsMacroSupport guide shows, with
+// its kind kept internal. Its users' files see the module name the expansion uses.
+@_exported import LinkerSets
 
 extension LinkerSetKind {
     /// Internal: only this library reads the set.

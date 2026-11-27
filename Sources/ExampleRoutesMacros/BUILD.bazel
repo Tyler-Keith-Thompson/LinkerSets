@@ -8,6 +8,7 @@ swift_compiler_plugin(
     srcs = [":srcs"],
     module_name = "ExampleRoutesMacros",
     deps = [
+        "//Sources/ExampleRoutesKind",
         "//Sources/LinkerSetsMacroSupport",
         "@swiftpkg_swift_syntax//:SwiftCompilerPlugin",
         "@swiftpkg_swift_syntax//:SwiftSyntaxMacros",

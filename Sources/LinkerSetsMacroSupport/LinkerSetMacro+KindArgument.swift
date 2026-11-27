@@ -1,3 +1,5 @@
+import SwiftSyntax
+
 extension LinkerSetMacro {
     /// The attribute's `kind:` argument: an integer literal from 1 through `UInt32.max`.
     ///
@@ -10,9 +12,20 @@ extension LinkerSetMacro {
     ///   32 bits or is 0.
     public static func kindArgument(of attribute: AttributeSyntax) throws -> UInt32 {
         let macroName = "@" + attribute.attributeName.trimmedDescription
-        let argument = attribute.arguments?.as(LabeledExprListSyntax.self)?.first { $0.label?.text == "kind" }
+        let arguments = attribute.arguments?.as(LabeledExprListSyntax.self) ?? []
+        return try arguments.kindArgument(macroName: macroName, at: attribute)
+    }
+}
+
+extension LabeledExprListSyntax {
+    /// The `kind:` argument among these: an integer literal from 1 through `UInt32.max`.
+    ///
+    /// - Throws: A diagnostic at `node` under `macroName` when the argument is missing or isn't an
+    ///   integer literal, and at the literal when it doesn't fit in 32 bits or is 0.
+    func kindArgument(macroName: String, at node: some SyntaxProtocol) throws -> UInt32 {
+        let argument = first { $0.label?.text == "kind" }
         guard let argument, let literal = argument.expression.as(IntegerLiteralExprSyntax.self) else {
-            throw LinkerSetMacroDiagnostic(.kindNotLiteral, macroName: macroName, at: attribute).error
+            throw LinkerSetMacroDiagnostic(.kindNotLiteral, macroName: macroName, at: node).error
         }
         guard let kind = literal.unsignedValue else {
             throw LinkerSetMacroDiagnostic(.kindOutOfRange, macroName: macroName, at: literal).error

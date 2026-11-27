@@ -9,8 +9,7 @@ swift_compile_failure_test(
     size = "small",
     src = "GenericFunction.swift",
     expected_errors = ["error: '@LinkerSetEntry' cannot apply to a generic function: a record holds one concrete value"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -20,8 +19,7 @@ swift_compile_failure_test(
     size = "small",
     src = "GenericType.swift",
     expected_errors = ["error: '@LinkerSetEntry' cannot apply to a generic type: a record holds one concrete type"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -31,8 +29,7 @@ swift_compile_failure_test(
     size = "small",
     src = "MemberOfGenericType.swift",
     expected_errors = ["error: '@LinkerSetEntry' cannot apply to a member of a generic type: a record holds one concrete value"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -42,8 +39,7 @@ swift_compile_failure_test(
     size = "small",
     src = "InstanceProperty.swift",
     expected_errors = ["error: '@LinkerSetEntry' applies to static members only: a record has no instance to read"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -53,8 +49,7 @@ swift_compile_failure_test(
     size = "small",
     src = "InstanceMethod.swift",
     expected_errors = ["error: '@LinkerSetEntry' applies to static members only: a record has no instance to read"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -64,8 +59,7 @@ swift_compile_failure_test(
     size = "small",
     src = "LocalDeclaration.swift",
     expected_errors = ["error: '@LinkerSetEntry' applies at file scope or in a type, not inside a function, closure or accessor: a record is a global"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -75,8 +69,7 @@ swift_compile_failure_test(
     size = "small",
     src = "ProtocolRequirement.swift",
     expected_errors = ["error: '@LinkerSetEntry' cannot apply to a protocol's requirement: a record holds a value, and a requirement has none of its own"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -86,8 +79,7 @@ swift_compile_failure_test(
     size = "small",
     src = "UnsupportedDeclaration.swift",
     expected_errors = ["error: '@LinkerSetEntry' applies to a static property, a static function, a global variable, a free function, or a struct, enum, class or actor"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -97,8 +89,7 @@ swift_compile_failure_test(
     size = "small",
     src = "TuplePattern.swift",
     expected_errors = ["error: '@LinkerSetEntry' applies to a variable with a name, not a tuple pattern"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -108,8 +99,7 @@ swift_compile_failure_test(
     size = "small",
     src = "KindNotLiteral.swift",
     expected_errors = ["error: '@LinkerSetEntry' needs its kind as an integer literal, such as 'kind: 0x726F_7574'"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -119,8 +109,7 @@ swift_compile_failure_test(
     size = "small",
     src = "KindOutOfRange.swift",
     expected_errors = ["error: '@LinkerSetEntry' kind must fit in 32 bits"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -130,8 +119,7 @@ swift_compile_failure_test(
     size = "small",
     src = "KindZero.swift",
     expected_errors = ["error: '@LinkerSetEntry' kind 0 is reserved for empty slots"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -140,8 +128,7 @@ swift_compile_failure_test(
     name = "AcceptedDeclarations",
     size = "small",
     src = "AcceptedDeclarations.swift",
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -151,8 +138,7 @@ swift_compile_failure_test(
     size = "small",
     src = "NonConformingEvent.swift",
     expected_errors = ["error: cannot convert value of type 'NotAnEvent.Type' to type 'any AnalyticsEvent.Type' in coercion"],
-    plugin = "//Sources/ExampleEventsMacros",
-    plugin_module_name = "ExampleEventsMacros",
+    plugins = {"//Sources/ExampleEventsMacros": "ExampleEventsMacros", "//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/ExampleEvents"],
 )
@@ -161,8 +147,7 @@ swift_compile_failure_test(
     name = "ConformingEvent",
     size = "small",
     src = "ConformingEvent.swift",
-    plugin = "//Sources/ExampleEventsMacros",
-    plugin_module_name = "ExampleEventsMacros",
+    plugins = {"//Sources/ExampleEventsMacros": "ExampleEventsMacros", "//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/ExampleEvents"],
 )
@@ -173,8 +158,7 @@ swift_compile_failure_test(
     size = "small",
     src = "MainActorProperty.swift",
     expected_errors = ["error: '@LinkerSetEntry' cannot apply to a property isolated to the main actor: a record's accessor is nonisolated and can't read it; mark the property nonisolated, or register a @MainActor function that returns it"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -184,8 +168,7 @@ swift_compile_failure_test(
     size = "small",
     src = "MainActorTypeVariable.swift",
     expected_errors = ["error: '@LinkerSetEntry' cannot apply to a property isolated to the main actor: a record's accessor is nonisolated and can't read it; mark the property nonisolated, or register a @MainActor function that returns it"],
-    plugin = "//Sources/LinkerSetsMacros",
-    plugin_module_name = "LinkerSetsMacros",
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = ["//Sources/LinkerSets"],
 )
@@ -198,7 +181,7 @@ swift_library(
     srcs = ["ExportingClient/Probe.swift"],
     module_name = "ExportingClient",
     plugins = ["//Sources/ExampleRoutesMacros"],
-    deps = ["//Sources/LinkerSetsRuntime"],
+    deps = ["//Sources/LinkerSets"],
 )
 
 swift_library(
@@ -207,15 +190,14 @@ swift_library(
     srcs = ["ImportingClient/Probe.swift"],
     module_name = "ImportingClient",
     plugins = ["//Sources/ExampleRoutesMacros"],
-    deps = ["//Sources/LinkerSetsRuntime"],
+    deps = ["//Sources/LinkerSets"],
 )
 
 swift_compile_failure_test(
     name = "ExportingClientUser",
     size = "small",
     src = "ExportingClientUser.swift",
-    plugin = "//Sources/ExampleRoutesMacros",
-    plugin_module_name = "ExampleRoutesMacros",
+    plugins = {"//Sources/ExampleRoutesMacros": "ExampleRoutesMacros", "//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = [":ExportingClient"],
 )
@@ -233,12 +215,8 @@ swift_compile_failure_test(
     name = "ImportingClientUser",
     size = "small",
     src = "ImportingClientUser.swift",
-    expected_errors = [
-        "error: cannot find type 'LinkerSetsRuntime' in scope",
-        "error: cannot find 'LinkerSetsRuntime' in scope",
-    ],
-    plugin = "//Sources/ExampleRoutesMacros",
-    plugin_module_name = "ExampleRoutesMacros",
+    expected_errors = ["error: no macro named 'linkerSetRecord'"],
+    plugins = {"//Sources/ExampleRoutesMacros": "ExampleRoutesMacros", "//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = [":ImportingClient"],
 )
@@ -247,8 +225,7 @@ swift_compile_failure_test(
     name = "ImportingClientUserImportingLinkerSets",
     size = "small",
     src = "ImportingClientUserImportingLinkerSets.swift",
-    plugin = "//Sources/ExampleRoutesMacros",
-    plugin_module_name = "ExampleRoutesMacros",
+    plugins = {"//Sources/ExampleRoutesMacros": "ExampleRoutesMacros", "//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
     tags = ["debug-only"],
     deps = [":ImportingClient", "//Sources/LinkerSets"],
 )

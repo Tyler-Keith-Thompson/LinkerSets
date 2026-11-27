@@ -34,6 +34,8 @@ public struct LinkerSetMacroDiagnostic: DiagnosticMessage {
         case localDeclaration
         /// The property is isolated to the main actor, out of the record's accessor's reach.
         case isolatedProperty
+        /// `#linkerSetRecord` was called without the `storing:` expression its record holds.
+        case missingValue
     }
 
     /// Why the declaration or kind is refused.
@@ -81,6 +83,8 @@ public struct LinkerSetMacroDiagnostic: DiagnosticMessage {
             "'\(macroName)' applies at file scope or in a type, not inside a function, closure or accessor: a record is a global"
         case .isolatedProperty:
             "'\(macroName)' cannot apply to a property isolated to the main actor: a record's accessor is nonisolated and can't read it; mark the property nonisolated, or register a @MainActor function that returns it"
+        case .missingValue:
+            "'\(macroName)' needs a 'storing:' expression: the value its record holds"
         }
     }
 

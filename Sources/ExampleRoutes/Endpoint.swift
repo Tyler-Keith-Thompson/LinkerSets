@@ -1,4 +1,4 @@
-import LinkerSetsRuntime
+import LinkerSets
 
 /// A path the example app answers.
 public struct Endpoint: Hashable, Sendable {

@@ -9,7 +9,8 @@ swift_library(
     srcs = glob(["**/*.swift"]),
     module_name = "ExampleRoutes",
     deps = [
-        "//Sources/LinkerSetsRuntime",
+        "//Sources/LinkerSets",
+        "//Sources/ExampleRoutesKind",
     ],
     plugins = [
         "//Sources/ExampleRoutesMacros",

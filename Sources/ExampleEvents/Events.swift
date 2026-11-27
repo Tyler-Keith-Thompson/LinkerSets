@@ -1,4 +1,4 @@
-import LinkerSetsRuntime
+import LinkerSets
 
 // At file scope: before swift-syntax 600 a macro can't see whether a type is nested, and the
 // package builds with every swift-syntax from 509 on.

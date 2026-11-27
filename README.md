@@ -170,9 +170,9 @@ Then add the product to your target:
 ]),
 ```
 
-A module that marks declarations with `@LinkerSetEntry` depends on `LinkerSets`. A module that
-only reads records, and a library whose own macro writes them, depends on `LinkerSetsRuntime`
-instead. It holds `LinkerSet` and has no macros, so it doesn't build swift-syntax.
+A module that writes records, with `@LinkerSetEntry` or a macro of its own, depends on
+`LinkerSets`. A module that only reads them depends on `LinkerSetsRuntime` instead. It holds
+`LinkerSet` and has no macros, so it doesn't build swift-syntax.
 
 ## Modules
 

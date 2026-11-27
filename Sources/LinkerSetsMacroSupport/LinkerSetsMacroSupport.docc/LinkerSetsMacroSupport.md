@@ -25,13 +25,12 @@ public enum RouteMacro: LinkerSetMacro {
 }
 ```
 
-The client's library declares the macro, the same kind, and the read of the set. It re-exports
-LinkerSetsRuntime, because the expansion names its types in its users' files. The client's own
-plugin writes the records, so its library needs nothing else from LinkerSets: depending on
-LinkerSetsRuntime alone, it doesn't build LinkerSets' own plugin.
+The client's library declares the macro, the same kind, and the read of the set. It depends on
+LinkerSets and re-exports it, because the expansion calls LinkerSets' `#linkerSetRecord` in its
+users' files:
 
 ```swift
-@_exported import LinkerSetsRuntime
+@_exported import LinkerSets
 
 extension LinkerSetKind {
     static let routes = LinkerSetKind(rawValue: 0x726F_7574)  // "rout"
@@ -59,13 +58,13 @@ let endpoints = Endpoints.all
 
 ### What the re-export exposes
 
-The expansion is written into each user's file and names `LinkerSetsRuntime.LinkerSetRecord`
-there, so that file has to see the LinkerSetsRuntime module. With `@_exported import
-LinkerSetsRuntime` in the client's library (or `@_exported import LinkerSets`, which re-exports
-it), importing the client is enough. With a plain or `public import`, every user's file fails to
-compile with "cannot find 'LinkerSetsRuntime' in scope" until it imports LinkerSetsRuntime or
-LinkerSets itself. The
-compile tests in `Tests/CompileFailures` (`ExportingClientUser`, `ImportingClientUser` and
+`@Route static let home = ...` expands, in the user's file, to one call:
+`#linkerSetRecord(kind: 0x726F7574, storing: Self.home)`. That macro, which LinkerSets declares,
+expands in turn to the record itself, one declaration per object format, naming
+`LinkerSetsRuntime.LinkerSetRecord`. So the user's file has to see LinkerSets. With
+`@_exported import LinkerSets` in the client's library, importing the client is enough. With a
+plain or `public import`, every user's file fails to compile with "no macro named
+'linkerSetRecord'" until it imports LinkerSets itself. The compile tests in `Tests/CompileFailures` (`ExportingClientUser`, `ImportingClientUser` and
 `ImportingClientUserImportingLinkerSets`) check each case.
 
 So every file that imports the client also sees `LinkerSet`, `LinkerSetKind` and anything
@@ -108,6 +107,69 @@ see where its declaration sits, so the type must be declared at file scope.
 
 A macro that takes its kind as an argument can return ``LinkerSetMacro/kindArgument(of:)`` from
 ``LinkerSetMacro/kind(of:)``.
+
+### Declaring the kind once
+
+The plugin returns the kind from ``LinkerSetMacro/kind(of:)`` and the library reads the set by
+it, so the number appears twice, and a mismatch shows only at run time, as an empty set. To write
+it once, put it in a module of its own that depends on nothing, and have both import it:
+
+```swift
+// RoutesKind
+public enum RouteKind {
+    public static let rawValue: UInt32 = 0x726F_7574  // "rout"
+}
+```
+
+```swift
+// RoutesMacros, the plugin
+public enum RouteMacro: LinkerSetMacro {
+    public static func kind(of attribute: AttributeSyntax) -> UInt32 { RouteKind.rawValue }
+}
+```
+
+```swift
+// Routes, the library
+extension LinkerSetKind {
+    static let routes = LinkerSetKind(rawValue: RouteKind.rawValue)
+}
+```
+
+The package lists the module among both targets' dependencies:
+`.macro(name: "RoutesMacros", dependencies: ["RoutesKind", ...])` and
+`.target(name: "Routes", dependencies: ["RoutesKind", "RoutesMacros", ...])`. SwiftPM builds it
+for the host for the plugin and for the target for the library.
+
+### Testing the expansion
+
+A client's expansion tests pin one line per record, the `#linkerSetRecord` call:
+
+```swift
+assertMacroExpansion(
+    """
+    enum Endpoints {
+        @Route
+        static let home = Endpoint(path: "/")
+    }
+    """,
+    expandedSource: """
+    enum Endpoints {
+        static let home = Endpoint(path: "/")
+
+        #linkerSetRecord(kind: 0x726F7574, storing: Self.home)
+    }
+    """,
+    macroSpecs: ["Route": MacroSpec(type: RouteMacro.self)],
+    failureHandler: { Issue.record("\($0.message)") }
+)
+```
+
+`assertMacroExpansion` expands only the macros in its table, so the call stays as written, and it
+reads the same on every swift-syntax from 600 on. The record behind it, one declaration per object
+format, belongs to LinkerSets and changes when LinkerSets adds a format. A test that wants it
+anyway adds `"linkerSetRecord": MacroSpec(type: LinkerSetRecordMacro.self)` to the table. A
+declaration at file scope expands to the call inside a private enum of its own, whose name comes
+from the context's unique names (`__macro_local_15linkerSetRecordfMu_`).
 
 ### Writing the expansion yourself
 
@@ -191,6 +253,7 @@ the expansion.
 ### Declaring a macro
 
 - ``LinkerSetMacro``
+- ``LinkerSetRecordMacro``
 
 ### Diagnostics
 

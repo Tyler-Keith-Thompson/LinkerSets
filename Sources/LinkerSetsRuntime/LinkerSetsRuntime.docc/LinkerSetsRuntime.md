@@ -10,8 +10,8 @@ of one kind from every loaded image, the ``LinkerSetRecord`` each declaration be
 builds no compiler plugin and no swift-syntax.
 
 The LinkerSets module re-exports it beside `@LinkerSetEntry`, so `import LinkerSets` gives both. A
-module that writes records with `@LinkerSetEntry` depends on LinkerSets. A module that only reads
-them, or a client library whose own macro writes them, depends on LinkerSetsRuntime:
+module that writes records, with `@LinkerSetEntry` or a client's own macro, depends on
+LinkerSets. A module that only reads them depends on LinkerSetsRuntime:
 
 ```swift
 import LinkerSetsRuntime

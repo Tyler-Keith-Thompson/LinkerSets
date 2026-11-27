@@ -1,5 +1,5 @@
-// A user of a client library that imports LinkerSets without re-exporting it: the expansion names
-// LinkerSets' types, and this file can't see the module.
+// A user of a client library that imports LinkerSets without re-exporting it: the expansion calls
+// LinkerSets' #linkerSetRecord, which this file can't see.
 import ImportingClient
 
 enum Probes {

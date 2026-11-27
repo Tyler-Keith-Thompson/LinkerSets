@@ -1,4 +1,4 @@
-@_exported import LinkerSetsRuntime
+@_exported import LinkerSets
 
 // A client that registers types: its kind, the protocol its types conform to, and its macro, whose
 // plugin (ExampleEventsMacros) requires that protocol, so the set reads as `any AnalyticsEvent.Type`.

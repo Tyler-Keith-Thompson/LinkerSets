@@ -25,3 +25,20 @@
 /// - Parameter kind: The kind the record is tagged with, as an integer literal.
 @attached(peer)
 public macro LinkerSetEntry(kind: UInt32) = #externalMacro(module: "LinkerSetsMacros", type: "LinkerSetEntryMacro")
+
+/// Declares a record of `kind` whose accessor stores `value`: what every linker-set macro's
+/// expansion calls.
+///
+/// `@LinkerSetEntry` and a client's own macro (LinkerSetsMacroSupport's `LinkerSetMacro`) check
+/// the declaration they're attached to and expand to one call of this, so a client's expansion
+/// tests pin that call alone. The record it writes, one declaration per object format, is
+/// LinkerSets' to change. At file scope the record is a global; in a type or an extension it is a
+/// static member, and `value` reads the declaration through `Self`.
+///
+/// - Parameters:
+///   - kind: The kind the record is tagged with, as an integer literal from 1 through
+///     `UInt32.max`.
+///   - value: The expression the record's accessor produces, of exactly the type a
+///     ``/LinkerSetsRuntime/LinkerSet`` reads it as.
+@freestanding(declaration)
+public macro linkerSetRecord<Value>(kind: UInt32, storing value: Value) = #externalMacro(module: "LinkerSetsMacros", type: "LinkerSetRecordMacro")

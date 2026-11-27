@@ -21,8 +21,10 @@ import SwiftSyntaxBuilder
 /// }
 /// ```
 ///
-/// The expansion is a private `@used` peer, placed with `@section` in the section LinkerSets
-/// owns, whose accessor produces the declaration's value:
+/// The expansion is one peer, `#linkerSetRecord(kind:storing:)` (``LinkerSetRecordMacro``), which
+/// the LinkerSets module declares and which expands in turn to a private `@used` declaration,
+/// placed with `@section` in the section LinkerSets owns, whose accessor produces the declaration's
+/// value:
 ///
 /// - a static property's or a global variable's value;
 /// - a static or free function, as a value of its function type;
@@ -90,7 +92,9 @@ extension LinkerSetMacro {
     ///   - node: The attribute being expanded.
     ///   - declaration: The declaration it's attached to.
     ///   - context: The expansion's context.
-    /// - Returns: The record's declaration, one per object format under `#if objectFormat(...)`.
+    /// - Returns: The record's declaration, a call of ``LinkerSetRecordMacro``
+    ///   (`#linkerSetRecord(kind: 0x726F7574, storing: Self.home)`), whose own expansion writes one
+    ///   declaration per object format.
     /// - Throws: The ``LinkerSetMacroDiagnostic/error`` of a refused kind or declaration, and
     ///   whatever ``kind(of:)`` or ``requiredConformance(of:)`` throws.
     public static func recordPeers(
@@ -107,27 +111,13 @@ extension LinkerSetMacro {
         case .value(let expression): value = expression
         case .refused(let refusal): throw refusal.error
         }
-        let name = context.makeUniqueName("linkerSetRecord")
-        let storage = site.isMember ? "private static let" : "private let"
-        let record: ExprSyntax = "(\(raw: kind.hexadecimalLiteral), 0, { outValue, type, _, _ in LinkerSetsRuntime.LinkerSetRecord.__store(\(value), into: outValue, ifAsked: type) }, 0, 0)"
-        // An ELF image holds each record as a note (LinkerSetRecord.Note) whose header gives the
-        // record's size, a literal that differs with the pointer width; a section's initializer is
-        // a constant expression, so each width gets a declaration of its own.
-        return [
-            """
-            #if objectFormat(MachO)
-            @section("__DATA_CONST,__linker_sets") @used \(raw: storage) \(name): LinkerSetsRuntime.LinkerSetRecord.Literal = \(record)
-            #elseif objectFormat(ELF) && _pointerBitWidth(_64)
-            @section(".note.linker_sets") @used \(raw: storage) \(name): LinkerSetsRuntime.LinkerSetRecord.Note = (11, 32, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), \(record))
-            #elseif objectFormat(ELF) && _pointerBitWidth(_32)
-            @section(".note.linker_sets") @used \(raw: storage) \(name): LinkerSetsRuntime.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), \(record))
-            #elseif objectFormat(Wasm)
-            @section("linker_sets") @used \(raw: storage) \(name): LinkerSetsRuntime.LinkerSetRecord.Literal = \(record)
-            #elseif objectFormat(COFF)
-            @section(".lnkset$M") @used \(raw: storage) \(name): LinkerSetsRuntime.LinkerSetRecord.Literal = \(record)
-            #endif
-            """,
-        ]
+        // The record itself is LinkerSets' own macro's expansion, so a client's expansion stays one
+        // line however many object formats LinkerSets writes.
+        let call: DeclSyntax = "#linkerSetRecord(kind: \(raw: kind.hexadecimalLiteral), storing: \(value))"
+        guard !site.isMember else { return [call] }
+        // At file scope the compiler drops the globals a freestanding macro declares inside a peer's
+        // expansion, so a global's record is a member of a private enum of its own instead.
+        return ["private enum \(context.makeUniqueName("linkerSetRecord")) { \(call) }"]
     }
 
     /// Why `declaration` can't hold a record, or `nil` when it can: the checks
@@ -265,7 +255,7 @@ private struct RecordSite {
 
 extension UInt32 {
     /// The value as a Swift hexadecimal literal, `0x726F7574`.
-    fileprivate var hexadecimalLiteral: String {
+    var hexadecimalLiteral: String {
         let digits = String(self, radix: 16, uppercase: true)
         return "0x" + String(repeating: "0", count: 8 - digits.count) + digits
     }
@@ -294,7 +284,7 @@ private struct NominalType {
 
 extension Syntax {
     /// Whether a declaration directly inside this one is a member of a type.
-    fileprivate var isTypeScope: Bool {
+    var isTypeScope: Bool {
         `is`(StructDeclSyntax.self) || `is`(EnumDeclSyntax.self) || `is`(ClassDeclSyntax.self)
             || `is`(ActorDeclSyntax.self) || `is`(ExtensionDeclSyntax.self) || `is`(ProtocolDeclSyntax.self)
     }

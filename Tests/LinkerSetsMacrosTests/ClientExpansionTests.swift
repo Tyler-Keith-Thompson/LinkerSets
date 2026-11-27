@@ -72,9 +72,6 @@ struct ProbeNote: DiagnosticMessage {
 
 @Suite("A client macro's own expansion: recordPeers and refusal")
 struct ClientExpansionTests {
-    // See LinkerSetEntryMacroTests: 600 and 601's assertMacroExpansion leaves the `#if` among the
-    // peer's attributes out of the expansion it reports.
-    #if canImport(SwiftSyntax602)
     @Test("A macro that writes its own expansion gets the library's record from recordPeers, beside its extension")
     func recordPeersBesideExtension() {
         let source = """
@@ -86,27 +83,9 @@ struct ClientExpansionTests {
             struct Login {
             }
 
-            #if objectFormat(MachO)
-            @section("__DATA_CONST,__linker_sets") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSetsRuntime.LinkerSetRecord.Literal = (0x65766E74, 0, { outValue, type, _, _ in
-                    LinkerSetsRuntime.LinkerSetRecord.__store(Login.self as any (Events.AnalyticsEvent).Type, into: outValue, ifAsked: type)
-                }, 0, 0)
-            #elseif objectFormat(ELF) && _pointerBitWidth(_64)
-            @section(".note.linker_sets") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSetsRuntime.LinkerSetRecord.Note = (11, 32, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x65766E74, 0, { outValue, type, _, _ in
-                        LinkerSetsRuntime.LinkerSetRecord.__store(Login.self as any (Events.AnalyticsEvent).Type, into: outValue, ifAsked: type)
-                    }, 0, 0))
-            #elseif objectFormat(ELF) && _pointerBitWidth(_32)
-            @section(".note.linker_sets") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSetsRuntime.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x65766E74, 0, { outValue, type, _, _ in
-                        LinkerSetsRuntime.LinkerSetRecord.__store(Login.self as any (Events.AnalyticsEvent).Type, into: outValue, ifAsked: type)
-                    }, 0, 0))
-            #elseif objectFormat(Wasm)
-            @section("linker_sets") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSetsRuntime.LinkerSetRecord.Literal = (0x65766E74, 0, { outValue, type, _, _ in
-                    LinkerSetsRuntime.LinkerSetRecord.__store(Login.self as any (Events.AnalyticsEvent).Type, into: outValue, ifAsked: type)
-                }, 0, 0)
-            #elseif objectFormat(COFF)
-            @section(".lnkset$M") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSetsRuntime.LinkerSetRecord.Literal = (0x65766E74, 0, { outValue, type, _, _ in
-                    LinkerSetsRuntime.LinkerSetRecord.__store(Login.self as any (Events.AnalyticsEvent).Type, into: outValue, ifAsked: type)
-                }, 0, 0)
-            #endif
+            private enum __macro_local_15linkerSetRecordfMu_ {
+                #linkerSetRecord(kind: 0x65766E74, storing: Login.self as any (Events.AnalyticsEvent).Type)
+            }
 
             extension Login: Events.AnalyticsEvent {
             }
@@ -132,27 +111,7 @@ struct ClientExpansionTests {
             enum Screens {
                 static let home = 1
 
-                #if objectFormat(MachO)
-                @section("__DATA_CONST,__linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSetsRuntime.LinkerSetRecord.Literal = (0x65766E74, 0, { outValue, type, _, _ in
-                        LinkerSetsRuntime.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
-                    }, 0, 0)
-                #elseif objectFormat(ELF) && _pointerBitWidth(_64)
-                @section(".note.linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSetsRuntime.LinkerSetRecord.Note = (11, 32, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x65766E74, 0, { outValue, type, _, _ in
-                            LinkerSetsRuntime.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
-                        }, 0, 0))
-                #elseif objectFormat(ELF) && _pointerBitWidth(_32)
-                @section(".note.linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSetsRuntime.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x65766E74, 0, { outValue, type, _, _ in
-                            LinkerSetsRuntime.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
-                        }, 0, 0))
-                #elseif objectFormat(Wasm)
-                @section("linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSetsRuntime.LinkerSetRecord.Literal = (0x65766E74, 0, { outValue, type, _, _ in
-                        LinkerSetsRuntime.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
-                    }, 0, 0)
-                #elseif objectFormat(COFF)
-                @section(".lnkset$M") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSetsRuntime.LinkerSetRecord.Literal = (0x65766E74, 0, { outValue, type, _, _ in
-                        LinkerSetsRuntime.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
-                    }, 0, 0)
-                #endif
+                #linkerSetRecord(kind: 0x65766E74, storing: Self.home)
             }
             """
 
@@ -163,7 +122,6 @@ struct ClientExpansionTests {
             failureHandler: { Issue.record("\($0.message)") }
         )
     }
-    #endif
 
     @Test("A macro that skips generic types gives its own note and writes no record")
     func genericTypeNote() {

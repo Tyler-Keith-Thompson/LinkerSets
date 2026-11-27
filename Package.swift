@@ -48,17 +48,18 @@ let targets: [Target] = [
     .target(name: "LinkerSetsRuntime", exclude: bazelFiles, swiftSettings: [.enableExperimentalFeature("Extern")]),
     .target(name: "LinkerSetsMacroSupport", dependencies: [.product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftDiagnostics", package: "swift-syntax")], exclude: bazelFiles),
     // Examples
-    .target(name: "ExampleRoutes", dependencies: ["LinkerSetsRuntime", "ExampleRoutesMacros"], exclude: bazelFiles),
-    .target(name: "ExampleMigrations", dependencies: ["LinkerSetsRuntime", "ExampleMigrationsMacros"], exclude: bazelFiles),
+    .target(name: "ExampleRoutes", dependencies: ["LinkerSets", "ExampleRoutesKind", "ExampleRoutesMacros"], exclude: bazelFiles),
+    .target(name: "ExampleRoutesKind", exclude: bazelFiles),
+    .target(name: "ExampleMigrations", dependencies: ["LinkerSets", "ExampleMigrationsMacros"], exclude: bazelFiles),
     .target(name: "ExamplePlugins", dependencies: ["LinkerSets"], exclude: bazelFiles),
-    .target(name: "ExampleEvents", dependencies: ["LinkerSetsRuntime", "ExampleEventsMacros"], exclude: bazelFiles),
+    .target(name: "ExampleEvents", dependencies: ["LinkerSets", "ExampleEventsMacros"], exclude: bazelFiles),
     .target(name: "ExampleDynamicPlugins", dependencies: ["LinkerSets"], exclude: bazelFiles),
     .target(name: "ExampleCatalog", dependencies: ["LinkerSetsRuntime"], exclude: bazelFiles),
     .target(name: "ExampleLoadedPlugins", dependencies: ["LinkerSets"], exclude: bazelFiles),
     // Discovery: compiler plugin
     .macro(name: "LinkerSetsMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
     // Examples: compiler plugin
-    .macro(name: "ExampleRoutesMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
+    .macro(name: "ExampleRoutesMacros", dependencies: ["ExampleRoutesKind", "LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
     // Examples: compiler plugin
     .macro(name: "ExampleMigrationsMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
     // Examples: compiler plugin

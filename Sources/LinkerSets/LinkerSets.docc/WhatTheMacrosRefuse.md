@@ -43,3 +43,8 @@ compiler still refuses each of these, inside the expanded code, and a registered
 file scope.
 
 Each of these is pinned by a test that must fail to compile, in `Tests/CompileFailures`.
+
+`#linkerSetRecord(kind:storing:)`, which every one of these macros expands to, checks only its
+arguments: the same three kind messages under `'#linkerSetRecord'`, and "needs a 'storing:'
+expression" without its value. It writes its record as a static member, so a direct call belongs
+in a type or an extension.

@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# LinkerSetEntryMacro: the expansion every linker-set macro shares, for clients' own macro plugins.
+# LinkerSetMacro: the expansion every linker-set macro shares, for the macro plugins of clients that declare their own kind.
 swift_library(
     name = "LinkerSetsMacroSupport",
     srcs = glob(["**/*.swift"]),

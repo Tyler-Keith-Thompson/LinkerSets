@@ -47,6 +47,28 @@ swift_library(
     ],
 )
 
+# ExampleEventsMacros's sources as a library of the same module, for these tests to link (MACROS in
+# scripts/modules.py). Its `@main` entry point is renamed, as swift_compiler_plugin renames
+# the plugin's, so it doesn't clash with the test runner's.
+swift_library(
+    name = "ExampleEventsMacrosLibrary",
+    testonly = True,
+    srcs = ["//Sources/ExampleEventsMacros:srcs"],
+    module_name = "ExampleEventsMacros",
+    copts = [
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "ExampleEventsMacros_main",
+    ],
+    tags = ["debug-only"],
+    deps = [
+        "//Sources/LinkerSetsMacroSupport",
+        "@swiftpkg_swift_syntax//:SwiftCompilerPlugin",
+        "@swiftpkg_swift_syntax//:SwiftSyntaxMacros",
+    ],
+)
+
 # The tests, built once and linked into two runners.
 # Tagged `debug-only`: none of these relies on speed, so
 # `--config=release` neither builds nor runs them (.bazelrc).
@@ -64,6 +86,7 @@ swift_library(
     deps = [
         ":LinkerSetsMacrosLibrary",
         ":ExampleRoutesMacrosLibrary",
+        ":ExampleEventsMacrosLibrary",
         "//Sources/LinkerSetsMacroSupport",
         "@swiftpkg_swift_syntax//:SwiftSyntax",
         "@swiftpkg_swift_syntax//:SwiftSyntaxMacros",

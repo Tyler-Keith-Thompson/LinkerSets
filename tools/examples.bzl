@@ -5,6 +5,8 @@
 EXAMPLE_PACKAGES = [
     "Sources/ExampleRoutes",
     "Sources/ExampleMigrations",
+    "Sources/ExampleEvents",
     "Sources/ExampleRoutesMacros",
     "Sources/ExampleMigrationsMacros",
+    "Sources/ExampleEventsMacros",
 ]

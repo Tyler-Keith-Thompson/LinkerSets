@@ -1,5 +1,5 @@
 // Records declared with @LinkerSetEntry, found again by each object format's reader. Kinds
-// "lsa1", "lsa2" and "lsa3" belong to this file alone; each test reads the records itself.
+// "lsa1" through "lsa4" belong to this file alone; each test reads the records itself.
 
 #if objectFormat(MachO) || objectFormat(ELF)
 import Generators
@@ -29,6 +29,14 @@ private enum EnumerationFixtures {
 
 @LinkerSetEntry(kind: 0x6C73_6133)
 private func double(_ value: Int) -> Int { value * 2 }
+
+// Types of kind "lsa4"; @LinkerSetEntry requires no protocol of them. At file scope, because
+// before swift-syntax 600 a macro can't see whether a type is nested.
+@LinkerSetEntry(kind: 0x6C73_6134)
+private struct FirstPlugin {}
+
+@LinkerSetEntry(kind: 0x6C73_6134)
+private final class SecondPlugin {}
 
 @Suite("LinkerSet: enumeration")
 struct LinkerSetEnumerationTests {
@@ -81,6 +89,16 @@ struct LinkerSetEnumerationTests {
         let actual = sut.values.map { $0(5) }
 
         #expect(actual.sorted() == expected)
+    }
+
+    @Test("Types are found as their metatypes, Any.Type, when the macro requires no protocol")
+    func types() {
+        let sut = LinkerSet<Any.Type>(kind: LinkerSetKind(rawValue: 0x6C73_6134))
+        let expected: Set<ObjectIdentifier> = [ObjectIdentifier(FirstPlugin.self), ObjectIdentifier(SecondPlugin.self)]
+
+        let actual = Set(sut.values.map(ObjectIdentifier.init))
+
+        #expect(actual == expected)
     }
 
     @Test("A kind no record was declared with holds nothing")

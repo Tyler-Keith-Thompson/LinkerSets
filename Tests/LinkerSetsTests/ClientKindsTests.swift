@@ -1,8 +1,9 @@
-// Two clients in one binary, each with its own kind and macro (ExampleRoutes' @Route,
-// ExampleMigrations' @Migration), find their own records and never each other's. Each test is
-// self-contained.
+// Clients in one binary, each with its own kind and macro (ExampleRoutes' @Route,
+// ExampleMigrations' @Migration, ExampleEvents' @Event), find their own records and never each
+// other's. Each test is self-contained.
 
 #if objectFormat(MachO) || objectFormat(ELF)
+import ExampleEvents
 import ExampleMigrations
 import ExampleRoutes
 import LinkerSets
@@ -29,6 +30,25 @@ struct ClientKindsTests {
         for migration in sut.values { migration(&tables) }
 
         #expect(tables.sorted() == expected)
+    }
+
+    @Test("A client's types are found typed as the protocol its macro requires")
+    func events() {
+        let sut = LinkerSet<any AnalyticsEvent.Type>(kind: .events)
+        let expected = ["login", "logout", "purchase", "refund"]
+
+        let actual = sut.values.map { $0.name }.sorted()
+
+        #expect(actual == expected)
+    }
+
+    @Test("A client's types aren't found as Any.Type, the type their records don't hold")
+    func eventsOnlyAsTheirProtocol() {
+        let sut = LinkerSet<Any.Type>(kind: .events)
+
+        let actual = sut.values
+
+        #expect(actual.isEmpty)
     }
 
     @Test("Each client's kind holds only its own records")

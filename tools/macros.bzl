@@ -6,4 +6,5 @@ MACRO_PACKAGES = [
     "Sources/LinkerSetsMacros",
     "Sources/ExampleRoutesMacros",
     "Sources/ExampleMigrationsMacros",
+    "Sources/ExampleEventsMacros",
 ]

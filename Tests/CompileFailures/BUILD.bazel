@@ -1,0 +1,25 @@
+# Sources a macro must refuse, each checked for the error the compiler reports, beside a control
+# that compiles (tools/compile_failure_test.bzl). Hand-written: no Package.swift target holds them.
+
+load("//tools:compile_failure_test.bzl", "swift_compile_failure_test")
+
+swift_compile_failure_test(
+    name = "NonConformingEvent",
+    size = "small",
+    src = "NonConformingEvent.swift",
+    expected_errors = ["error: cannot convert value of type 'NotAnEvent.Type' to type 'any AnalyticsEvent.Type' in coercion"],
+    plugin = "//Sources/ExampleEventsMacros",
+    plugin_module_name = "ExampleEventsMacros",
+    tags = ["debug-only"],
+    deps = ["//Sources/ExampleEvents"],
+)
+
+swift_compile_failure_test(
+    name = "ConformingEvent",
+    size = "small",
+    src = "ConformingEvent.swift",
+    plugin = "//Sources/ExampleEventsMacros",
+    plugin_module_name = "ExampleEventsMacros",
+    tags = ["debug-only"],
+    deps = ["//Sources/ExampleEvents"],
+)

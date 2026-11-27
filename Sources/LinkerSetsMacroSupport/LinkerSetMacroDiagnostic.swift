@@ -13,6 +13,7 @@ struct LinkerSetMacroDiagnostic: DiagnosticMessage, Error {
         case instanceMember
         case unnamedVariable
         case genericFunction
+        case genericType
     }
 
     let reason: Reason
@@ -28,13 +29,15 @@ struct LinkerSetMacroDiagnostic: DiagnosticMessage, Error {
         case .kindZero:
             "'\(macroName)' kind 0 is reserved for empty slots"
         case .unsupportedDeclaration:
-            "'\(macroName)' applies to a static property, a static function, a global variable or a free function"
+            "'\(macroName)' applies to a static property, a static function, a global variable, a free function, or a struct, enum, class or actor"
         case .instanceMember:
             "'\(macroName)' applies to static members only: a record has no instance to read"
         case .unnamedVariable:
             "'\(macroName)' applies to a variable with a name, not a tuple pattern"
         case .genericFunction:
             "'\(macroName)' cannot apply to a generic function: a record holds one concrete value"
+        case .genericType:
+            "'\(macroName)' cannot apply to a generic type: a record holds one concrete type"
         }
     }
 

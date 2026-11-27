@@ -22,9 +22,16 @@ import SwiftSyntaxBuilder
 /// ```
 ///
 /// The expansion is a private `@used` peer, placed with `@section` in the section LinkerSets
-/// owns, whose accessor produces the variable's value, or the function itself as a value of its
-/// function type. It applies to a static property, a global variable, a static function or a
-/// free function, and diagnoses anything else.
+/// owns, whose accessor produces the declaration's value:
+///
+/// - a static property's or a global variable's value;
+/// - a static or free function, as a value of its function type;
+/// - a struct, enum, class or actor, as its metatype: `any P.Type` when
+///   ``requiredConformance(of:)`` names a protocol `P`, which the type must then conform to or the
+///   expansion doesn't compile, and `Any.Type` otherwise.
+///
+/// It diagnoses anything else, and generic functions and types. Before swift-syntax 600 a macro
+/// can't see its lexical context, so a type it registers must be declared at file scope there.
 public protocol LinkerSetMacro: PeerMacro {
     /// The kind of the record that `attribute` declares, from 1 through `UInt32.max`.
     ///
@@ -32,9 +39,26 @@ public protocol LinkerSetMacro: PeerMacro {
     /// - Returns: The kind to tag the record with.
     /// - Throws: A diagnostic when the attribute doesn't give a kind the macro can use.
     static func kind(of attribute: AttributeSyntax) throws -> UInt32
+
+    /// The protocol a type that `attribute` registers must conform to, such as `Event`, or `nil`
+    /// for none.
+    ///
+    /// A type's record holds `any P.Type` for the protocol `P` returned here, so a client reads
+    /// `LinkerSet<any P.Type>` without casting. With `nil` it holds `Any.Type`. Properties and
+    /// functions ignore it.
+    ///
+    /// - Parameter attribute: The attribute being expanded, as written.
+    /// - Returns: The protocol's name, or `nil`.
+    /// - Throws: A diagnostic when the attribute doesn't give a protocol the macro can use.
+    static func requiredConformance(of attribute: AttributeSyntax) throws -> TypeSyntax?
 }
 
 extension LinkerSetMacro {
+    /// No required protocol: a type's record holds `Any.Type`.
+    public static func requiredConformance(of attribute: AttributeSyntax) throws -> TypeSyntax? {
+        nil
+    }
+
     /// The record that `declaration` becomes, as a peer.
     public static func expansion(
         of node: AttributeSyntax,
@@ -52,7 +76,7 @@ extension LinkerSetMacro {
         // refuse in the expansion.
         let isMember = declaration.asProtocol(WithModifiersSyntax.self)?.modifiers.isStatic ?? false
         #endif
-        let value = try value(of: declaration, isMember: isMember, macroName: macroName)
+        let value = try value(of: declaration, isMember: isMember, attribute: node, macroName: macroName)
         let name = context.makeUniqueName("linkerSetRecord")
         let storage = isMember ? "private static let" : "private let"
         return [
@@ -67,9 +91,10 @@ extension LinkerSetMacro {
         ]
     }
 
-    /// The expression the record's accessor stores: the variable, or the function as a value of
-    /// its function type, named with its argument labels so an overload can't be mistaken for it.
-    private static func value(of declaration: some DeclSyntaxProtocol, isMember: Bool, macroName: String) throws -> ExprSyntax {
+    /// The expression the record's accessor stores: the variable; the function as a value of its
+    /// function type, named with its argument labels so an overload can't be mistaken for it; or
+    /// the type's metatype, as the existential of its required protocol.
+    private static func value(of declaration: some DeclSyntaxProtocol, isMember: Bool, attribute: AttributeSyntax, macroName: String) throws -> ExprSyntax {
         if let variable = declaration.as(VariableDeclSyntax.self) {
             try requireStatic(variable.modifiers, of: variable, isMember: isMember, macroName: macroName)
             // The compiler itself refuses a peer macro on a declaration of several variables, so one
@@ -87,6 +112,16 @@ extension LinkerSetMacro {
             let reference: ExprSyntax = isMember ? "Self.\(raw: function.compoundName)" : "\(raw: function.compoundName)"
             return "\(reference) as \(function.functionType)"
         }
+        if let type = NominalType(declaration) {
+            guard !type.isGeneric else {
+                throw LinkerSetMacroDiagnostic.error(.genericType, at: declaration, macroName: macroName)
+            }
+            let reference: ExprSyntax = isMember ? "Self.\(type.name).self" : "\(type.name).self"
+            // The coercion is the conformance check: a type that doesn't conform fails to compile
+            // here, at the attribute.
+            guard let conformance = try requiredConformance(of: attribute) else { return "\(reference) as Any.Type" }
+            return "\(reference) as any (\(conformance.trimmed)).Type"
+        }
         throw LinkerSetMacroDiagnostic.error(.unsupportedDeclaration, at: declaration, macroName: macroName)
     }
 
@@ -103,6 +138,27 @@ extension UInt32 {
     fileprivate var hexadecimalLiteral: String {
         let digits = String(self, radix: 16, uppercase: true)
         return "0x" + String(repeating: "0", count: 8 - digits.count) + digits
+    }
+}
+
+/// A struct, enum, class or actor declaration, which a record can hold as a metatype.
+private struct NominalType {
+    let name: TokenSyntax
+    let isGeneric: Bool
+
+    /// The type `declaration` declares, or `nil` when it declares none of the four.
+    init?(_ declaration: some DeclSyntaxProtocol) {
+        if let decl = declaration.as(StructDeclSyntax.self) {
+            (name, isGeneric) = (decl.name.trimmed, decl.genericParameterClause != nil)
+        } else if let decl = declaration.as(EnumDeclSyntax.self) {
+            (name, isGeneric) = (decl.name.trimmed, decl.genericParameterClause != nil)
+        } else if let decl = declaration.as(ClassDeclSyntax.self) {
+            (name, isGeneric) = (decl.name.trimmed, decl.genericParameterClause != nil)
+        } else if let decl = declaration.as(ActorDeclSyntax.self) {
+            (name, isGeneric) = (decl.name.trimmed, decl.genericParameterClause != nil)
+        } else {
+            return nil
+        }
     }
 }
 

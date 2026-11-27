@@ -115,6 +115,7 @@ MODULES = [
     # Examples
     ("ExampleRoutes", "Examples", "A client of LinkerSets: the routes kind and its @Route macro, with routes declared by it.", ["LinkerSets", "ExampleRoutesMacros"]),
     ("ExampleMigrations", "Examples", "A second client of LinkerSets: the migrations kind and its @Migration macro, with migrations declared by it.", ["LinkerSets", "ExampleMigrationsMacros"]),
+    ("ExampleEvents", "Examples", "A client of LinkerSets that registers types: the events kind, the AnalyticsEvent protocol its @Event macro requires, and events declared by it.", ["LinkerSets", "ExampleEventsMacros"]),
 ]
 
 # Modules only iOS builds: SwiftUI views and what they draw with. Bazel builds them for the
@@ -130,7 +131,7 @@ IOS_MINIMUM = "18.0"
 # so neither they nor their dependencies ship in `import LinkerSets`. Only executables, test
 # targets and other example modules may depend on one. A compiler plugin (MACROS) an example module
 # uses is listed here too: plugins ship nothing anyway, and the listing lets only examples use it.
-EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleRoutesMacros", "ExampleMigrationsMacros"]
+EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleEvents", "ExampleRoutesMacros", "ExampleMigrationsMacros", "ExampleEventsMacros"]
 
 # Modules offered as products of their own but left out of the umbrella, by name from MODULES:
 # ones an adopter imports on purpose rather than with `import LinkerSets`, such as a test-support
@@ -199,6 +200,8 @@ MACROS = [
      ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
     ("ExampleMigrationsMacros", "Examples", "The second example client's plugin: @Migration's expansion.",
      ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
+    ("ExampleEventsMacros", "Examples", "The third example client's plugin: @Event's expansion, which requires AnalyticsEvent.",
+     ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
 ]
 
 # SwiftPM command plugins: (name, verb, description, reason), run with `swift package <verb>`.
@@ -219,8 +222,8 @@ EXECUTABLES = [
 # Test targets. SwiftPM rejects a target with no sources, so list a target only once its directory
 # holds tests. (name, dependencies)
 TEST_TARGETS = [
-    (f"{PROJECT}Tests", [PROJECT, "ExampleRoutes", "ExampleMigrations", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
-    ("LinkerSetsMacrosTests", ["LinkerSetsMacros", "ExampleRoutesMacros", "LinkerSetsMacroSupport", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
+    (f"{PROJECT}Tests", [PROJECT, "ExampleRoutes", "ExampleMigrations", "ExampleEvents", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
+    ("LinkerSetsMacrosTests", ["LinkerSetsMacros", "ExampleRoutesMacros", "ExampleEventsMacros", "LinkerSetsMacroSupport", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
 ]
 
 # The modules the test-support target depends on (fixtures are usually written against the

@@ -1,4 +1,4 @@
-#if canImport(MachO)
+#if objectFormat(MachO)
 import MachO
 
 extension LinkerSetSection {

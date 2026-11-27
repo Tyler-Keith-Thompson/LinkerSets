@@ -8,6 +8,11 @@ swift_library(
     name = "LinkerSets",
     srcs = glob(["**/*.swift"]),
     module_name = "LinkerSets",
+    # Language features (EXPERIMENTAL_FEATURES, UPCOMING_FEATURES in scripts/modules.py).
+    copts = [
+        "-enable-experimental-feature",
+        "Extern",
+    ],
     visibility = ["//visibility:public"],
 )
 

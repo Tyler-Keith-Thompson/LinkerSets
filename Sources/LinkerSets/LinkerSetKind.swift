@@ -13,7 +13,8 @@
 /// ```
 ///
 /// A client picks one kind for its records and keeps it: records already compiled into other
-/// modules carry the value they were built with.
+/// modules carry the value they were built with. Kind 0 is reserved: it marks a slot that holds
+/// no record, and a ``LinkerSet`` of it is always empty.
 @frozen
 public struct LinkerSetKind: RawRepresentable, Hashable, Sendable {
     /// The value written into each record of this kind.
@@ -25,4 +26,10 @@ public struct LinkerSetKind: RawRepresentable, Hashable, Sendable {
     public init(rawValue: UInt32) {
         self.rawValue = rawValue
     }
+}
+
+extension LinkerSetKind {
+    /// Kind 0: zero padding between records, and the placeholder that keeps the section present
+    /// in every image.
+    static let emptySlot = LinkerSetKind(rawValue: 0)
 }

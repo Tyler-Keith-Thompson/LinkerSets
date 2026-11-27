@@ -53,11 +53,19 @@ def swift_library(name, features = [], copts = [], **kwargs):
         **kwargs
     )
 
-def swift_test(name, features = [], copts = [], **kwargs):
+# Linux tests link with --gc-sections, as release builds of a program do, so every test there
+# proves that the records in LinkerSets' ELF section survive section garbage collection.
+_TEST_LINKOPTS = select({
+    "@platforms//os:linux": ["-Wl,--gc-sections"],
+    "//conditions:default": [],
+})
+
+def swift_test(name, features = [], copts = [], linkopts = [], **kwargs):
     _swift_test(
         name = name,
         features = features + _FIRST_PARTY_FEATURES,
         copts = copts + _FIRST_PARTY_COPTS,
+        linkopts = linkopts + _TEST_LINKOPTS,
         package_name = _PACKAGE_NAME,
         **kwargs
     )

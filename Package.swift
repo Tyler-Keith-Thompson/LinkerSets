@@ -32,7 +32,7 @@ let dependencies: [Package.Dependency] = [
 
 let targets: [Target] = [
     // Discovery
-    .target(name: "LinkerSets", exclude: bazelFiles),
+    .target(name: "LinkerSets", exclude: bazelFiles, swiftSettings: [.enableExperimentalFeature("Extern")]),
 
     // Shared fixtures (data only) for every test target.
     .target(name: "LinkerSetsTestSupport", path: "Tests/LinkerSetsTestSupport", exclude: bazelFiles),

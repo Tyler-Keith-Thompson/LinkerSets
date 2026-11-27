@@ -24,5 +24,6 @@ extension LinkerSetKind {
 
 ### Records
 
+- ``LinkerSet``
 - ``LinkerSetRecord``
 - ``LinkerSetKind``

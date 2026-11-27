@@ -84,6 +84,14 @@ in beside the project's own: keep one definition, holding the project's rows, an
   only their cached results depend on it. Not `--test_env` in `.bazelrc`, which hands it to every
   test. SwiftPM passes the whole environment already. `check()` refuses a name that isn't a test
   target.
+- Compile a module or test target with a Swift language feature (`@_extern` needs the experimental
+  `Extern`): its name and the features in `EXPERIMENTAL_FEATURES` or `UPCOMING_FEATURES`
+  (`{"LinkerSets": ["Extern"]}`), then `just modules`. Package.swift gets
+  `.enableExperimentalFeature` or `.enableUpcomingFeature` in that target's `swiftSettings`, which
+  a package depending on this one still accepts (unlike `unsafeFlags`). Its `swift_library` gets
+  the same flags as `copts`, and `//:package_swift_test` compares the two. A test target's
+  Performance target takes its features, and only the target listed compiles with them.
+  `check()` refuses a name that is neither a module nor a test target.
 - Add an executable: a row in `EXECUTABLES` (name, description, dependencies). It holds only
   `@main`; its code lives in a module, where tests reach it.
 - Add an example module (a demo app's views, a sample server's routes): a row in `MODULES` and its

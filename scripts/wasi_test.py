@@ -25,6 +25,7 @@ an older Xcode: `--xcode /Applications/Xcode-26.2.0.app` (or set <PROJECT>_WASI_
 """
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -73,6 +74,19 @@ def issues_besides_time_limits(lines):
 # The stacks a deep chain of non-suspending awaits needs: the linear-memory stack the binary links
 # with, and wasmtime's call stack.
 LINEAR_STACK = 64 * 1024 * 1024
+
+
+def stack_toolset():
+    """A toolset that links the WebAssembly binaries with LINEAR_STACK, written into SCRATCH.
+
+    The linear-memory stack, which deep chains of non-suspending awaits overrun. A toolset applies
+    to the target's tools alone; `-Xlinker` would reach the host's linker too, which builds the
+    macros' compiler plugins and refuses wasm-ld's `-z stack-size`."""
+    path = os.path.join(SCRATCH, "stack-toolset.json")
+    os.makedirs(SCRATCH, exist_ok=True)
+    with open(path, "w") as f:
+        json.dump({"schemaVersion": "1.0", "linker": {"extraCLIOptions": ["-z", f"stack-size={LINEAR_STACK}"]}}, f)
+    return path
 WASM_STACK = 256 * 1024 * 1024
 
 
@@ -131,8 +145,7 @@ def main():
         testable = ["-Xswiftc", "-enable-testing"] if args.configuration == "release" else []
         build = ["swiftly", "run", "swift", "build", "-c", args.configuration, "--build-tests",
                  "--swift-sdk", sdk, "--scratch-path", SCRATCH, *testable,
-                 # The linear-memory stack, which deep chains of non-suspending awaits overrun.
-                 "-Xlinker", "-z", "-Xlinker", f"stack-size={LINEAR_STACK}", f"+{args.swift}"]
+                 "--toolset", stack_toolset(), f"+{args.swift}"]
         if run(build, env, os.path.join(logs, tag + "-build.log"), args.timeout) != 0:
             print(f"{tag} build FAILED ({', '.join(group)}): see .build/wasm/logs/{tag}-build.log")
             failed.append(tag)

@@ -13,6 +13,9 @@ swift_library(
         "-enable-experimental-feature",
         "Extern",
     ],
+    plugins = [
+        "//Sources/LinkerSetsMacros",
+    ],
     visibility = ["//visibility:public"],
 )
 

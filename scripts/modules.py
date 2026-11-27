@@ -41,6 +41,8 @@ PACKAGES = [
     ("swift-property-based", "https://github.com/x-sheep/swift-property-based", "2.0.1"),
     # Tests only: seeded generators and draws that reproduce on every platform.
     ("swiftprng", "https://github.com/Tyler-Keith-Thompson/SwiftPRNG", "0.0.1"),
+    # The macros' compiler plugin: syntax trees, expansion and its test support.
+    ("swift-syntax", "https://github.com/swiftlang/swift-syntax", "range:603.0.0..<605.0.0"),
     # Mocks generated from protocols (`@Mockable`). Uncomment when a module first needs one; see
     # MOCKING below.
     # ("mockable", "https://github.com/Kolos65/Mockable", "0.6.4"),
@@ -105,7 +107,7 @@ MOCKING = "mockable/Mockable"
 # (name, group, description, dependencies)
 MODULES = [
     # Discovery
-    ("LinkerSets", "Discovery", "LinkerSet, LinkerSetRecord and LinkerSetKind: the records of one kind found at run time, the record each entry is, and the kind that tags it.", []),
+    ("LinkerSets", "Discovery", "LinkerSet, LinkerSetRecord and LinkerSetKind: the records of one kind found at run time, the record each entry is, and the kind that tags it.", ["LinkerSetsMacros"]),
 ]
 
 # Modules only iOS builds: SwiftUI views and what they draw with. Bazel builds them for the
@@ -176,7 +178,10 @@ GENERATED_SOURCES = {}
 # the same sources compiled as a library in the test's package, since rules_swift builds a
 # test's plugin dependency for the host and loads it as a plugin, not as a module. (In the
 # plugin's own package that library's swiftmodule would collide with the plugin's.)
-MACROS = []
+MACROS = [
+    ("LinkerSetsMacros", "Discovery", "The attached macros that turn declarations into linker-set records.",
+     ["swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxBuilder", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftDiagnostics"]),
+]
 
 # SwiftPM command plugins: (name, verb, description, reason), run with `swift package <verb>`.
 # Each is a `.plugin` target with a product of the same name, its sources in Plugins/<name>
@@ -197,6 +202,7 @@ EXECUTABLES = [
 # holds tests. (name, dependencies)
 TEST_TARGETS = [
     (f"{PROJECT}Tests", [PROJECT, TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
+    ("LinkerSetsMacrosTests", ["LinkerSetsMacros", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
 ]
 
 # The modules the test-support target depends on (fixtures are usually written against the
@@ -320,7 +326,10 @@ def performance_target(name):
 def duplicate_definitions():
     """The top-level names this file assigns or defines more than once, sorted.
 
-    A template update merges a table the template adds (`MACROS = []`) as a clean insertion even
+    A template update merges a table the template adds (`MACROS = [
+    ("LinkerSetsMacros", "Discovery", "The attached macros that turn declarations into linker-set records.",
+     ["swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxBuilder", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftDiagnostics"]),
+]`) as a clean insertion even
     when the project already defines it elsewhere in the file, and the later assignment wins, so
     the check reads the source rather than the values.
     """

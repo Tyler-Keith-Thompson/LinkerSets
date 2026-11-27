@@ -79,4 +79,24 @@ public struct LinkerSetRecord {
             return produced ? outValue.move() : nil
         }
     }
+
+    /// The body of an accessor the macros write: stores `value` into `outValue` when `type`
+    /// points to `Value`'s metatype.
+    ///
+    /// For the macros' expansions only.
+    ///
+    /// - Parameters:
+    ///   - value: The record's value, evaluated only when it is asked for.
+    ///   - outValue: Uninitialized memory for a `Value`.
+    ///   - type: A pointer to the metatype asked for.
+    /// - Returns: `true` when the value was stored, `false` when `type` is another type.
+    public static func __store<Value>(
+        _ value: @autoclosure () -> Value,
+        into outValue: UnsafeMutableRawPointer,
+        ifAsked type: UnsafeRawPointer
+    ) -> Bool {
+        guard type.load(as: Any.Type.self) == Value.self else { return false }
+        outValue.initializeMemory(as: Value.self, to: value())
+        return true
+    }
 }

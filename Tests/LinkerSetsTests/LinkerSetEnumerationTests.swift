@@ -1,7 +1,5 @@
-// Records declared by hand in the section LinkerSets owns, found again by each object format's
-// reader; the declarations differ only in the section name the format uses. Kinds "lsa1" and
-// "lsa2" belong to this file alone. The records are file-scope globals, as the macros will emit
-// them; each test reads them itself.
+// Records declared with @LinkerSetEntry, found again by each object format's reader. Kinds
+// "lsa1", "lsa2" and "lsa3" belong to this file alone; each test reads the records itself.
 
 #if objectFormat(MachO) || objectFormat(ELF)
 import Generators
@@ -11,70 +9,41 @@ import PropertyBased
 import Sampling
 import Testing
 
-#if objectFormat(MachO)
-@section("__DATA_CONST,__linker_sets") @used
-private let firstRecord: LinkerSetRecord.Literal = (0x6C73_6131, 0, { outValue, type, _, _ in
-    guard type.load(as: Any.Type.self) == Int.self else { return false }
-    outValue.initializeMemory(as: Int.self, to: 1)
-    return true
-}, 0, 0)
+private enum EnumerationFixtures {
+    @LinkerSetEntry(kind: 0x6C73_6131)
+    static let first = 1
 
-@section("__DATA_CONST,__linker_sets") @used
-private let secondRecord: LinkerSetRecord.Literal = (0x6C73_6131, 0, { outValue, type, _, _ in
-    guard type.load(as: Any.Type.self) == Int.self else { return false }
-    outValue.initializeMemory(as: Int.self, to: 2)
-    return true
-}, 2, 0)
+    @LinkerSetEntry(kind: 0x6C73_6131)
+    static let second = 2
 
-@section("__DATA_CONST,__linker_sets") @used
-private let decliningRecord: LinkerSetRecord.Literal = (0x6C73_6131, 0, { _, _, _, _ in false }, 3, 0)
+    // Of kind "lsa1" but a String, so a set of Ints skips its value.
+    @LinkerSetEntry(kind: 0x6C73_6131)
+    static let label = "not an Int"
 
-@section("__DATA_CONST,__linker_sets") @used
-private let otherKindRecord: LinkerSetRecord.Literal = (0x6C73_6132, 0, { outValue, type, _, _ in
-    guard type.load(as: Any.Type.self) == Int.self else { return false }
-    outValue.initializeMemory(as: Int.self, to: 100)
-    return true
-}, 100, 0)
-#elseif objectFormat(ELF)
-@section("linker_sets") @used
-private let firstRecord: LinkerSetRecord.Literal = (0x6C73_6131, 0, { outValue, type, _, _ in
-    guard type.load(as: Any.Type.self) == Int.self else { return false }
-    outValue.initializeMemory(as: Int.self, to: 1)
-    return true
-}, 0, 0)
+    @LinkerSetEntry(kind: 0x6C73_6132)
+    static let other = 100
 
-@section("linker_sets") @used
-private let secondRecord: LinkerSetRecord.Literal = (0x6C73_6131, 0, { outValue, type, _, _ in
-    guard type.load(as: Any.Type.self) == Int.self else { return false }
-    outValue.initializeMemory(as: Int.self, to: 2)
-    return true
-}, 2, 0)
+    @LinkerSetEntry(kind: 0x6C73_6133)
+    static func triple(_ value: Int) -> Int { value * 3 }
+}
 
-@section("linker_sets") @used
-private let decliningRecord: LinkerSetRecord.Literal = (0x6C73_6131, 0, { _, _, _, _ in false }, 3, 0)
-
-@section("linker_sets") @used
-private let otherKindRecord: LinkerSetRecord.Literal = (0x6C73_6132, 0, { outValue, type, _, _ in
-    guard type.load(as: Any.Type.self) == Int.self else { return false }
-    outValue.initializeMemory(as: Int.self, to: 100)
-    return true
-}, 100, 0)
-#endif
+@LinkerSetEntry(kind: 0x6C73_6133)
+private func double(_ value: Int) -> Int { value * 2 }
 
 @Suite("LinkerSet: enumeration")
 struct LinkerSetEnumerationTests {
     @Test("Every record of a kind is found, and none of another kind")
     func everyRecordOfItsKind() {
         let sut = LinkerSet<Int>(kind: LinkerSetKind(rawValue: 0x6C73_6131))
-        let expectedContexts: [UInt] = [0, 2, 3]
+        let expectedCount = 3
 
         let actual = sut.records
 
-        #expect(actual.map(\.context).sorted() == expectedContexts)
+        #expect(actual.count == expectedCount)
         #expect(actual.allSatisfy { $0.kind.rawValue == 0x6C73_6131 })
     }
 
-    @Test("Values hold what each record produces, leaving out a record that declines the type")
+    @Test("Values hold what each record produces, leaving out a record of another type")
     func values() {
         let sut = LinkerSet<Int>(kind: LinkerSetKind(rawValue: 0x6C73_6131))
         let expected = [1, 2]
@@ -82,6 +51,16 @@ struct LinkerSetEnumerationTests {
         let actual = sut.values
 
         #expect(actual.sorted() == expected)
+    }
+
+    @Test("A set of the other type of the same kind holds that type's record")
+    func otherTypeSameKind() {
+        let sut = LinkerSet<String>(kind: LinkerSetKind(rawValue: 0x6C73_6131))
+        let expected = ["not an Int"]
+
+        let actual = sut.values
+
+        #expect(actual == expected)
     }
 
     @Test("Another kind's set holds only its own record")
@@ -92,6 +71,16 @@ struct LinkerSetEnumerationTests {
         let actual = sut.values
 
         #expect(actual == expected)
+    }
+
+    @Test("Static and free functions are found as values of their function type")
+    func functions() {
+        let sut = LinkerSet<(Int) -> Int>(kind: LinkerSetKind(rawValue: 0x6C73_6133))
+        let expected = [10, 15]
+
+        let actual = sut.values.map { $0(5) }
+
+        #expect(actual.sorted() == expected)
     }
 
     @Test("A kind no record was declared with holds nothing")
@@ -105,7 +94,7 @@ struct LinkerSetEnumerationTests {
 
     @Test("A record asked for a type it doesn't produce gives nil")
     func wrongType() {
-        let sut = LinkerSet<String>(kind: LinkerSetKind(rawValue: 0x6C73_6131))
+        let sut = LinkerSet<Double>(kind: LinkerSetKind(rawValue: 0x6C73_6131))
         let expectedRecordCount = 3
 
         let actual = sut.values
@@ -126,25 +115,25 @@ struct LinkerSetEnumerationTests {
     @Test("Enumerating twice returns the same records in the same order")
     func deterministic() {
         let sut = LinkerSet<Int>(kind: LinkerSetKind(rawValue: 0x6C73_6131))
-        let expected = sut.records.map(\.context)
+        let expected = sut.values
 
-        let actual = sut.records.map(\.context)
+        let actual = sut.values
 
         #expect(actual == expected)
-        #expect(sut.values == sut.values)
+        #expect(sut.records.count == LinkerSet<Int>(kind: LinkerSetKind(rawValue: 0x6C73_6131)).records.count)
     }
 
     @Test("A set holds exactly the section's records of its kind, in section order", .tags(.randomized))
     func matchesNaiveFilter() async {
-        let kind = Gen.element(of: [0x6C73_6131, 0x6C73_6132, 0x6C73_6139] as [UInt32]).map { $0! }
+        let kind = Gen.element(of: [0x6C73_6131, 0x6C73_6132, 0x6C73_6133, 0x6C73_6139] as [UInt32]).map { $0! }
         await propertyCheck(count: 50, input: kind) { kind in
             let sut = LinkerSet<Int>(kind: LinkerSetKind(rawValue: kind))
-            var expected: [UInt] = []
+            var expected: [Int] = []
             for record in LinkerSetSection.records() where record.kind.rawValue == kind && record.accessor != nil {
-                expected.append(record.context)
+                if let value = record.value(as: Int.self) { expected.append(value) }
             }
 
-            let actual = sut.records.map(\.context)
+            let actual = sut.values
 
             #expect(actual == expected)
         }

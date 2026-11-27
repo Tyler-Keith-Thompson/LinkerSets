@@ -3,4 +3,5 @@
 # The source packages that hold a compiler plugin rather than a library: the root BUILD.bazel
 # leaves them out of the docs and the products.
 MACRO_PACKAGES = [
+    "Sources/LinkerSetsMacros",
 ]

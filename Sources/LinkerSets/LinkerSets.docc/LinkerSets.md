@@ -9,20 +9,28 @@ enumerates every record of one kind in a deterministic order. Each record carrie
 clients share the mechanism without seeing each other's records. Failures are typed errors; the
 run-time API never traps.
 
-A client tags its records with a kind of its own, four ASCII characters read as a 32-bit integer:
+A declaration registers itself with ``LinkerSetEntry(kind:)``, tagged with a kind: four ASCII
+characters read as a 32-bit integer. A ``LinkerSet`` of that kind finds every such declaration
+at run time:
 
 ```swift
 import LinkerSets
 
-extension LinkerSetKind {
-    /// Records of routes, `"rout"`.
-    static let routes = LinkerSetKind(rawValue: 0x726F_7574)
+enum Routes {
+    @LinkerSetEntry(kind: 0x726F_7574)  // "rout"
+    static let home = Route(path: "/")
 }
+
+let routes = LinkerSet<Route>(kind: LinkerSetKind(rawValue: 0x726F_7574)).values
 ```
 
 ## Topics
 
-### Records
+### Declaring records
+
+- ``LinkerSetEntry(kind:)``
+
+### Finding records
 
 - ``LinkerSet``
 - ``LinkerSetRecord``

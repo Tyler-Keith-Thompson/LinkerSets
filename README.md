@@ -43,24 +43,34 @@ Then add the product to your target:
 
 Every example here is a test in `Tests/LinkerSetsTests`, so it cannot drift from the code.
 
-A client tags its records with a kind of its own, four ASCII characters read as a 32-bit integer:
+A declaration registers itself with `@LinkerSetEntry`, tagged with a kind: four ASCII
+characters read as a 32-bit integer. A `LinkerSet` of that kind finds every such declaration in
+the program at run time, in whichever module declared it:
 
 ```swift
 import LinkerSets
 
-extension LinkerSetKind {
-    /// Records of routes, `"rout"`.
-    static let routes = LinkerSetKind(rawValue: 0x726F_7574)
+struct Route: Sendable {
+    var path: String
 }
 
-let size = MemoryLayout<LinkerSetRecord>.size  // 32 where pointers are 64 bits, 20 where they are 32
+enum Routes {
+    @LinkerSetEntry(kind: 0x726F_7574)  // "rout"
+    static let home = Route(path: "/")
+
+    @LinkerSetEntry(kind: 0x726F_7574)
+    static let settings = Route(path: "/settings")
+}
+
+let paths = LinkerSet<Route>(kind: LinkerSetKind(rawValue: 0x726F_7574)).values.map(\.path)
+// "/" and "/settings", in link order
 ```
 
 ## Modules
 
 | Module | Holds |
 |---|---|
-| `LinkerSets` | `LinkerSet`, the records of one kind found at run time; `LinkerSetRecord`, the record each entry is; and `LinkerSetKind`, the kind that tags it |
+| `LinkerSets` | `@LinkerSetEntry`, which registers a declaration; `LinkerSet`, the records of one kind found at run time; `LinkerSetRecord`, the record each entry is; and `LinkerSetKind`, the kind that tags it |
 
 ## Development
 

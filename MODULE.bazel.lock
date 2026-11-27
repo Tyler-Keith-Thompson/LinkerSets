@@ -619,7 +619,7 @@
           "REPO_MAPPING:rules_swift_package_manager+,bazel_skylib bazel_skylib+",
           "REPO_MAPPING:rules_swift_package_manager+,bazel_tools bazel_tools",
           "REPO_MAPPING:rules_swift_package_manager+,cgrindel_bazel_starlib cgrindel_bazel_starlib+",
-          "FILE:@@//swift/Package.resolved 19149371dfadc02ba3081ce414ba8c6f43e0e52681431d306f68e3321880a6f8"
+          "FILE:@@//swift/Package.resolved 6f51f54bbeb1aea80f42dca8e7383035393f38e6467a367568a73a27f988a5d9"
         ],
         "generatedRepoSpecs": {
           "swift_deps_info": {
@@ -627,7 +627,8 @@
             "attributes": {
               "direct_dep_pkg_infos": {
                 "@swiftpkg_swift_property_based//:pkg_info.json": "swift-property-based",
-                "@swiftpkg_swiftprng//:pkg_info.json": "swiftprng"
+                "@swiftpkg_swiftprng//:pkg_info.json": "swiftprng",
+                "@swiftpkg_swift_syntax//:pkg_info.json": "swift-syntax"
               }
             }
           },
@@ -643,6 +644,7 @@
             "attributes": {
               "repo_names": [
                 "swiftpkg_swift_property_based",
+                "swiftpkg_swift_syntax",
                 "swiftpkg_swiftprng"
               ]
             }
@@ -688,12 +690,34 @@
               "system_sdk_deps": false,
               "binary_target_deps": false
             }
+          },
+          "swiftpkg_swift_syntax": {
+            "repoRuleId": "@@rules_swift_package_manager+//swiftpkg/internal:swift_package.bzl%swift_package",
+            "attributes": {
+              "bazel_package_name": "swiftpkg_swift_syntax",
+              "commit": "050f1a346fbbac0ca2cfb15a95274f7bd1cf0ccf",
+              "remote": "https://github.com/swiftlang/swift-syntax",
+              "version": "604.0.0",
+              "env": {},
+              "env_inherit": [],
+              "cached_json_directory": "",
+              "make_files_read_only": false,
+              "replace_scm_with_registry": false,
+              "target_deps": {},
+              "module_aliases": {},
+              "dep_module_aliases": "",
+              "bazel_target_mods": "",
+              "package_repos": "@@rules_swift_package_manager++swift_deps+swift_deps_package_repos//:package_repos.json",
+              "system_sdk_deps": false,
+              "binary_target_deps": false
+            }
           }
         },
         "moduleExtensionMetadata": {
           "explicitRootModuleDirectDeps": [
             "swiftpkg_swift_property_based",
             "swiftpkg_swiftprng",
+            "swiftpkg_swift_syntax",
             "swift_deps_info",
             "swift_package"
           ],

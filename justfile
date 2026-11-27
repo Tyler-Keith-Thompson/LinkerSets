@@ -1,0 +1,140 @@
+PROJECT_ROOT := justfile_directory()
+BAZEL := "bazel"
+
+# Optimized builds use a separate output base: switching --compilation_mode changes the
+# configuration, and sharing a base with debug builds would discard the analysis cache on every
+# switch (which .bazelrc refuses). Each checkout gets its own, so two never wait on one server's
+# lock or overwrite each other's outputs. It sits in Bazel's output user root under a 32-digit hex
+# name like the debug base's, where tools/sweep-output-bases deletes it once its checkout is gone.
+BAZEL_RELEASE_OUTPUT_BASE := cache_directory() / "bazel" / ("_bazel_" + env("USER", "root")) / replace_regex(sha256(PROJECT_ROOT + ":release"), '^(.{32}).*$', '$1')
+BAZEL_RELEASE := "bazel --output_base=" + BAZEL_RELEASE_OUTPUT_BASE
+
+# SwiftPM runs through Xcode's default toolchain. A development snapshot selected through
+# TOOLCHAINS (or first on PATH via swiftly) can fail to read the SDK's Testing module.
+SWIFT := "env -u TOOLCHAINS xcrun --toolchain default swift"
+
+[doc('Build everything (default)')]
+all: build
+
+[doc('Build every target')]
+build:
+    {{BAZEL}} build //...
+
+[doc('Run every test')]
+test:
+    {{BAZEL}} test //...
+
+[doc('Run one test target, e.g. just test-one //Tests/GreetingsTests')]
+test-one target:
+    {{BAZEL}} test {{target}}
+
+[doc('Run tests matching a filter, e.g. just filter Greeting')]
+filter pattern:
+    {{BAZEL}} test //... --test_filter={{pattern}}
+
+[doc('Run the speed-reliant tests (the PerformanceTests targets) optimized (-O); the rest run in debug only')]
+test-release:
+    {{BAZEL_RELEASE}} test --config=release //...
+
+[doc('Re-resolve SwiftPM dependencies for Bazel after editing PACKAGES in scripts/modules.py')]
+resolve:
+    cd {{PROJECT_ROOT}}/swift && {{SWIFT}} package resolve
+
+[doc('Build via SwiftPM too, to verify the published package')]
+spm:
+    {{SWIFT}} build
+
+[doc('Run the tests via SwiftPM')]
+spm-test *args="":
+    {{SWIFT}} test {{args}}
+
+[doc('Verify both build systems agree — run before pushing')]
+verify: test spm-test
+
+[doc('Regenerate Package.swift and every BUILD.bazel from scripts/modules.py')]
+modules:
+    python3 {{PROJECT_ROOT}}/scripts/modules.py
+
+[doc('Refresh the checked-in copies of generated sources (GENERATED_SOURCES in scripts/modules.py) that SwiftPM compiles')]
+sources:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{PROJECT_ROOT}}
+    targets=$({{BAZEL}} query 'attr(generator_function, generated_swift_source, kind(genrule, //Sources/... + //Tests/...))')
+    [ -n "$targets" ] || { echo "No generated sources (GENERATED_SOURCES in scripts/modules.py)."; exit 0; }
+    {{BAZEL}} build $targets
+    for target in $targets; do
+        package="${target#//}"; package="${package%%:*}"
+        for output in $({{BAZEL}} cquery "$target" --output=files 2>/dev/null); do
+            copy="$package/Generated/${output#*/bin/$package/}"
+            mkdir -p "$(dirname "$copy")"
+            install -m 644 "$output" "$copy"
+        done
+    done
+
+[doc('Build the combined DocC site for every library module into .build/docs (what the DocC workflow publishes)')]
+docs:
+    {{BAZEL}} build //:docs
+    rm -rf {{PROJECT_ROOT}}/.build/docs && mkdir -p {{PROJECT_ROOT}}/.build
+    cp -RL {{PROJECT_ROOT}}/bazel-bin/docs {{PROJECT_ROOT}}/.build/docs && chmod -R u+w {{PROJECT_ROOT}}/.build/docs
+
+[doc('Mutation testing: plant the bugs in scripts/mutants/<Module>.py and check the tests catch each, e.g. just mutate Greetings, or just mutate Greetings --all')]
+mutate module *args="":
+    python3 {{PROJECT_ROOT}}/scripts/mutate.py {{module}} {{args}}
+
+[doc('SwiftPM tests on wasm32-wasi under wasmtime, a 32-bit Int, in groups of targets, e.g. just wasi-test, just wasi-test -c release, or just wasi-test --targets GreetingsTests')]
+wasi-test *args="":
+    python3 -u {{PROJECT_ROOT}}/scripts/wasi_test.py {{args}}
+
+[doc('Generate an Xcode project from the Bazel graph and open it')]
+generate *args="":
+    @bash scripts/generate-xcodeproj.sh {{args}}
+
+[doc('Build optimized: the library and the speed-reliant tests, not the debug-only test targets')]
+release:
+    {{BAZEL_RELEASE}} build --config=release //...
+
+[doc('Store the BuildBuddy API key in the login Keychain (asks for it), once per Mac: every project from the template then builds with the remote cache (tools/bazel)')]
+buildbuddy-key:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    read -r -s -p "BuildBuddy API key (hidden): " key
+    echo
+    if [ -z "$key" ]; then
+        echo "No key entered; nothing stored" >&2
+        exit 1
+    fi
+    # Through security's own command reader, so the key never appears in a process's arguments.
+    printf 'add-generic-password -U -s buildbuddy -a api-key -l "BuildBuddy API key" -w %s\n' "$key" | security -i >/dev/null
+    echo "Stored. Builds use BuildBuddy from the next Bazel command."
+
+[doc('Set this repository’s BUILDBUDDY_API_KEY Actions secret from the Keychain with gh, so CI uses the remote cache too')]
+ci-secrets:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! key="$(security find-generic-password -s buildbuddy -a api-key -w 2>/dev/null)"; then
+        echo "No BuildBuddy API key in the Keychain; store it with just buildbuddy-key" >&2
+        exit 1
+    fi
+    printf '%s' "$key" | gh secret set BUILDBUDDY_API_KEY
+
+# The checkout of ProjectTemplate this project came from; .template.json records the commit.
+PROJECT_TEMPLATE := env("PROJECT_TEMPLATE", home_directory() / "workspace" / "ProjectTemplate")
+
+[doc('Merge the project template’s changes since .template.json’s commit into this checkout (needs a clean worktree), e.g. just template-update, or just template-update --to <commit>')]
+template-update *args="":
+    python3 {{PROJECT_TEMPLATE}}/template.py update {{PROJECT_ROOT}} {{args}}
+
+[doc('Remove all build artifacts')]
+clean:
+    {{BAZEL}} clean
+    {{BAZEL_RELEASE}} clean || true
+    rm -rf {{PROJECT_ROOT}}/.build
+
+[doc('Print the dependency graph of a target')]
+deps target="//Sources/LinkerSets":
+    {{BAZEL}} query 'deps({{target}})' --output=label_kind
+
+[doc('List every buildable target')]
+targets:
+    {{BAZEL}} query '//...' --output=label_kind

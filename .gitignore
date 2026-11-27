@@ -1,0 +1,30 @@
+# Agent worktrees are checkouts of this same repo: Claude Code's, and Delta's clones and worktrees.
+.claude/worktrees/
+.delta/
+
+# Bazel
+/bazel-*
+/user.bazelrc
+# Remote cache diagnostics (user.bazelrc may write them).
+/bazel-remote-grpc.log
+/execution_log.binpb.zst
+.cache/
+
+# SwiftPM
+.build/
+.swiftpm/
+# The root package is a library, so its resolution is not committed; swift/Package.resolved
+# pins Bazel's dependencies and is.
+/Package.resolved
+
+# Xcode (generated from the Bazel graph by `just generate`)
+/xcode/
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+
+*.swp

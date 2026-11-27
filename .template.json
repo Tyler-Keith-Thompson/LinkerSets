@@ -1,0 +1,20 @@
+{
+  "commit": "54a1c99fdb5cd8a9737e245a51117d077233ab57",
+  "name": "LinkerSets",
+  "type": "library",
+  "benchmarks": false,
+  "mutation": true,
+  "fuzz": false,
+  "differential": false,
+  "wasm": true,
+  "explore": false,
+  "views": false,
+  "examples": false,
+  "ios": false,
+  "simulator": true,
+  "performance": false,
+  "fly": false,
+  "database": false,
+  "ci": true,
+  "trunk": false
+}

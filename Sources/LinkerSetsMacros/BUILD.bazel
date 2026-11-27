@@ -8,11 +8,9 @@ swift_compiler_plugin(
     srcs = [":srcs"],
     module_name = "LinkerSetsMacros",
     deps = [
+        "//Sources/LinkerSetsMacroSupport",
         "@swiftpkg_swift_syntax//:SwiftCompilerPlugin",
-        "@swiftpkg_swift_syntax//:SwiftSyntax",
-        "@swiftpkg_swift_syntax//:SwiftSyntaxBuilder",
         "@swiftpkg_swift_syntax//:SwiftSyntaxMacros",
-        "@swiftpkg_swift_syntax//:SwiftDiagnostics",
     ],
     visibility = ["//visibility:public"],
 )

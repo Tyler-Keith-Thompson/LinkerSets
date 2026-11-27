@@ -19,6 +19,8 @@ swift_library(
     visibility = ["//:__pkg__"],
     deps = [
         "//Sources/LinkerSets",
+        "//Sources/ExampleRoutes",
+        "//Sources/ExampleMigrations",
         "//Tests/LinkerSetsTestSupport",
         "@swiftpkg_swift_property_based//:PropertyBased",
         "@swiftpkg_swiftprng//:Generators",

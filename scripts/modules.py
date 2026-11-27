@@ -111,6 +111,10 @@ MOCKING = "mockable/Mockable"
 MODULES = [
     # Discovery
     ("LinkerSets", "Discovery", "LinkerSet, LinkerSetRecord and LinkerSetKind: the records of one kind found at run time, the record each entry is, and the kind that tags it.", ["LinkerSetsMacros"]),
+    ("LinkerSetsMacroSupport", "Discovery", "LinkerSetMacro: the expansion every linker-set macro shares, for the macro plugins of clients that declare their own kind.", ["swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxBuilder", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftDiagnostics"]),
+    # Examples
+    ("ExampleRoutes", "Examples", "A client of LinkerSets: the routes kind and its @Route macro, with routes declared by it.", ["LinkerSets", "ExampleRoutesMacros"]),
+    ("ExampleMigrations", "Examples", "A second client of LinkerSets: the migrations kind and its @Migration macro, with migrations declared by it.", ["LinkerSets", "ExampleMigrationsMacros"]),
 ]
 
 # Modules only iOS builds: SwiftUI views and what they draw with. Bazel builds them for the
@@ -124,8 +128,9 @@ IOS_MINIMUM = "18.0"
 # sample server's routes) rather than part of it. They build and test like any module, but
 # Package.swift offers no library product for them, and the umbrella and the docs leave them out,
 # so neither they nor their dependencies ship in `import LinkerSets`. Only executables, test
-# targets and other example modules may depend on one.
-EXAMPLE_MODULES = []
+# targets and other example modules may depend on one. A compiler plugin (MACROS) an example module
+# uses is listed here too: plugins ship nothing anyway, and the listing lets only examples use it.
+EXAMPLE_MODULES = ["ExampleRoutes", "ExampleMigrations", "ExampleRoutesMacros", "ExampleMigrationsMacros"]
 
 # Modules offered as products of their own but left out of the umbrella, by name from MODULES:
 # ones an adopter imports on purpose rather than with `import LinkerSets`, such as a test-support
@@ -172,7 +177,13 @@ RESOURCES = {}
 GENERATED_SOURCES = {}
 
 # Compiler plugins holding macros: (name, group, description, dependencies), whose dependencies
-# are packages' products only (swift-syntax's). A module lists one among its dependencies to offer its
+# are packages' products (swift-syntax's) and modules from MODULES: a library holding expansions
+# that plugins share, here and in adopters' own `.macro` targets, which keeps its product. Such a
+# module runs inside the compiler, so it may not be an iOS module or one in TESTING_MODULES, nor
+# reach a plugin through its own dependencies; SwiftPM builds it for the host as well, and Bazel in
+# the exec configuration. A plugin is never another plugin's dependency. A plugin of an example
+# module, or one depending on an example module, is an example too: list it in EXAMPLE_MODULES.
+# A module lists one among its dependencies to offer its
 # macros: SwiftPM takes it as a dependency of a `.macro` target, Bazel as a `plugins` entry of a
 # swift_compiler_plugin, which rules_swift loads for that module and the modules that depend on it
 # directly. A plugin is no library: it has no product, no docs and no place in the umbrella, so the
@@ -183,7 +194,11 @@ GENERATED_SOURCES = {}
 # plugin's own package that library's swiftmodule would collide with the plugin's.)
 MACROS = [
     ("LinkerSetsMacros", "Discovery", "The attached macros that turn declarations into linker-set records.",
-     ["swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxBuilder", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftDiagnostics"]),
+     ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
+    ("ExampleRoutesMacros", "Examples", "The example client's plugin: @Route's expansion.",
+     ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
+    ("ExampleMigrationsMacros", "Examples", "The second example client's plugin: @Migration's expansion.",
+     ["LinkerSetsMacroSupport", "swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntaxMacros"]),
 ]
 
 # SwiftPM command plugins: (name, verb, description, reason), run with `swift package <verb>`.
@@ -204,8 +219,8 @@ EXECUTABLES = [
 # Test targets. SwiftPM rejects a target with no sources, so list a target only once its directory
 # holds tests. (name, dependencies)
 TEST_TARGETS = [
-    (f"{PROJECT}Tests", [PROJECT, TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
-    ("LinkerSetsMacrosTests", ["LinkerSetsMacros", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
+    (f"{PROJECT}Tests", [PROJECT, "ExampleRoutes", "ExampleMigrations", TEST_SUPPORT, "swift-property-based/PropertyBased", "swiftprng/Generators", "swiftprng/Sampling"]),
+    ("LinkerSetsMacrosTests", ["LinkerSetsMacros", "ExampleRoutesMacros", "LinkerSetsMacroSupport", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport", "swift-syntax/SwiftSyntaxMacroExpansion"]),
 ]
 
 # The modules the test-support target depends on (fixtures are usually written against the
@@ -329,10 +344,7 @@ def performance_target(name):
 def duplicate_definitions():
     """The top-level names this file assigns or defines more than once, sorted.
 
-    A template update merges a table the template adds (`MACROS = [
-    ("LinkerSetsMacros", "Discovery", "The attached macros that turn declarations into linker-set records.",
-     ["swift-syntax/SwiftCompilerPlugin", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxBuilder", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftDiagnostics"]),
-]`) as a clean insertion even
+    A template update merges a table the template adds (`MACROS = []`) as a clean insertion even
     when the project already defines it elsewhere in the file, and the later assignment wins, so
     the check reads the source rather than the values.
     """
@@ -565,7 +577,17 @@ def check():
             else:
                 assert d in names + plugins, f"{name} depends on unknown {d}"
     for name, _, _, deps in MACROS:
-        assert all("/" in d for d in deps), f"the plugin {name} may depend on packages only"
+        for d in deps:
+            if "/" in d:
+                continue
+            assert not is_macro(d), f"the plugin {name} depends on the plugin {d}: share the code through a module in MODULES"
+            assert d not in IOS_MODULES, f"the plugin {name} depends on the iOS module {d}, which the compiler can't load"
+            assert d not in TESTING_MODULES, f"the plugin {name} depends on {d}, which imports Testing, a test-only library"
+            reached = plugins_reached(d)
+            assert not reached, (f"the plugin {name} depends on {d}, which reaches the plugin {reached[0]}: a plugin's "
+                                 "modules run inside the compiler and use no macros")
+            assert d not in EXAMPLE_MODULES or name in EXAMPLE_MODULES, \
+                f"the plugin {name} depends on the example module {d}, so it must be in EXAMPLE_MODULES"
     executables = [e[0] for e in EXECUTABLES]
     assert not set(executables) & set(names + plugins + [PROJECT]), "an executable shares a module's name"
     tests = [t[0] for t in TEST_TARGETS]
@@ -597,7 +619,7 @@ def check():
     for name in IOS_MODULES:
         assert name in names, f"IOS_MODULES names unknown module {name}"
     for name in EXAMPLE_MODULES:
-        assert name in names, f"EXAMPLE_MODULES names unknown module {name}"
+        assert name in names + plugins, f"EXAMPLE_MODULES names unknown module {name}"
     for name in NON_UMBRELLA_MODULES:
         assert name in names, f"NON_UMBRELLA_MODULES names unknown module {name}"
         assert name != PROJECT and umbrella(), f"NON_UMBRELLA_MODULES lists {name}, but the package has no umbrella to leave it out of"
@@ -630,6 +652,22 @@ def check():
 def macro_names():
     """The compiler plugins' names (MACROS)."""
     return [m[0] for m in MACROS]
+
+
+def plugins_reached(name):
+    """The compiler plugins module `name` depends on, directly or through other modules, sorted."""
+    deps = {m[0]: m[3] for m in MODULES}
+    reached, seen, pending = set(), set(), [name]
+    while pending:
+        d = pending.pop()
+        if d in seen or "/" in d:
+            continue
+        seen.add(d)
+        if is_macro(d):
+            reached.add(d)
+        else:
+            pending += deps.get(d, [])
+    return sorted(reached)
 
 
 def is_macro(d):

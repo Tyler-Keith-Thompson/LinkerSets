@@ -24,6 +24,10 @@ enum Routes {
 let routes = LinkerSet<Route>(kind: LinkerSetKind(rawValue: 0x726F_7574)).values
 ```
 
+A client that registers one kind of thing can give it a macro with the kind fixed, such as
+`@Route`, from its own compiler plugin. The LinkerSetsMacroSupport module's documentation shows
+how.
+
 ## Topics
 
 ### Declaring records

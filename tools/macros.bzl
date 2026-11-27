@@ -4,4 +4,6 @@
 # leaves them out of the docs and the products.
 MACRO_PACKAGES = [
     "Sources/LinkerSetsMacros",
+    "Sources/ExampleRoutesMacros",
+    "Sources/ExampleMigrationsMacros",
 ]

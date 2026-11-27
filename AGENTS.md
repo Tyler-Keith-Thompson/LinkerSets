@@ -138,9 +138,9 @@ in beside the project's own: keep one definition, holding the project's rows, an
   `just sources` rewrites and `<Name>_test` fails on while it differs from what the generator
   writes. Commit the copy, and run `just sources` after a change to the generator or its inputs.
   `check()` refuses a copy that doesn't exist, and a speed-reliant, iOS or firmware target.
-- Add a macro: its compiler plugin is a row in `MACROS` (name, group, description, and only
-  package products as dependencies: swift-syntax's, with `swift-syntax` in `PACKAGES`), its sources
-  in `Sources/<Plugin>/` (an `@main` `CompilerPlugin` listing the macro types), then `just modules`
+- Add a macro: its compiler plugin is a row in `MACROS` (name, group, description, and its
+  dependencies: swift-syntax's products, with `swift-syntax` in `PACKAGES`, and any library modules
+  below), its sources in `Sources/<Plugin>/` (an `@main` `CompilerPlugin` listing the macro types), then `just modules`
   and `just resolve`. The module that declares the macros (`#externalMacro(module: "<Plugin>",
   type: ...)`) lists the plugin among its dependencies: Package.swift gets a `.macro` target, Bazel
   a `swift_compiler_plugin` in that module's `plugins`. The plugin has no product, docs or umbrella
@@ -153,6 +153,17 @@ in beside the project's own: keep one definition, holding the project's rows, an
   hand-written BUILD.bazel no Package.swift target holds, with a control that compiles.
   A plugin takes planted bugs like a module (`scripts/mutants/<Plugin>.py`), with its expansion
   tests as the spec's `TESTS`.
+- Share expansion code between plugins (here and in adopters' own `.macro` targets): put it in a
+  library module, a `MODULES` row on swift-syntax's products, and name that module among each
+  plugin's `MACROS` dependencies, then `just modules`. Package.swift gets the name in the `.macro`
+  target's dependencies, Bazel the module in the `swift_compiler_plugin`'s `deps` (built for the
+  host, in the exec configuration) and in the `<Plugin>Library` its expansion tests link. The
+  module keeps its library product and docs, so adopters' plugins depend on it as a product.
+  `check()` refuses a plugin that depends on another plugin, an iOS module, a `TESTING_MODULES`
+  module, or a module that reaches a plugin through its own dependencies (code inside the compiler
+  uses no macros). An example's plugin is an example too: list it in `EXAMPLE_MODULES`. `check()`
+  refuses an unlisted plugin that depends on an example module, and lets only examples,
+  executables and test targets use a listed one.
 - Add a command plugin (`swift package <verb>`): a row in `PLUGINS` (name, verb, description, and
   the reason it writes to the package directory, or `None` when it writes nothing there), its
   sources in `Plugins/<name>/` (an `@main` `CommandPlugin`), then `just modules`. Package.swift gets

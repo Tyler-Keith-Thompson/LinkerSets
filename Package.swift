@@ -24,6 +24,7 @@ func testExcludes(_ excludes: [String], wasi exitTestFiles: [String]) -> [String
 // the type checker.
 let products: [Product] = [
     .library(name: "LinkerSets", targets: ["LinkerSets"]),
+    .library(name: "LinkerSetsMacroSupport", targets: ["LinkerSetsMacroSupport"]),
 ]
 
 let dependencies: [Package.Dependency] = [
@@ -35,14 +36,22 @@ let dependencies: [Package.Dependency] = [
 let targets: [Target] = [
     // Discovery
     .target(name: "LinkerSets", dependencies: ["LinkerSetsMacros"], exclude: bazelFiles, swiftSettings: [.enableExperimentalFeature("Extern")]),
+    .target(name: "LinkerSetsMacroSupport", dependencies: [.product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftDiagnostics", package: "swift-syntax")], exclude: bazelFiles),
+    // Examples
+    .target(name: "ExampleRoutes", dependencies: ["LinkerSets", "ExampleRoutesMacros"], exclude: bazelFiles),
+    .target(name: "ExampleMigrations", dependencies: ["LinkerSets", "ExampleMigrationsMacros"], exclude: bazelFiles),
     // Discovery: compiler plugin
-    .macro(name: "LinkerSetsMacros", dependencies: [.product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftDiagnostics", package: "swift-syntax")], exclude: bazelFiles),
+    .macro(name: "LinkerSetsMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
+    // Examples: compiler plugin
+    .macro(name: "ExampleRoutesMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
+    // Examples: compiler plugin
+    .macro(name: "ExampleMigrationsMacros", dependencies: ["LinkerSetsMacroSupport", .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax")], exclude: bazelFiles),
 
     // Shared fixtures (data only) for every test target.
     .target(name: "LinkerSetsTestSupport", path: "Tests/LinkerSetsTestSupport", exclude: bazelFiles),
 
-    .testTarget(name: "LinkerSetsTests", dependencies: ["LinkerSets", "LinkerSetsTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng"), .product(name: "Sampling", package: "swiftprng")], exclude: testExcludes(bazelFiles, wasi: [])),
-    .testTarget(name: "LinkerSetsMacrosTests", dependencies: ["LinkerSetsMacros", .product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"), .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax")], exclude: testExcludes(bazelFiles, wasi: [])),
+    .testTarget(name: "LinkerSetsTests", dependencies: ["LinkerSets", "ExampleRoutes", "ExampleMigrations", "LinkerSetsTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng"), .product(name: "Sampling", package: "swiftprng")], exclude: testExcludes(bazelFiles, wasi: [])),
+    .testTarget(name: "LinkerSetsMacrosTests", dependencies: ["LinkerSetsMacros", "ExampleRoutesMacros", "LinkerSetsMacroSupport", .product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"), .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax")], exclude: testExcludes(bazelFiles, wasi: [])),
 ]
 
 let package = Package(

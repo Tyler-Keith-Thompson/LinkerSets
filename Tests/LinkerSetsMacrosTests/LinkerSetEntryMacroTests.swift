@@ -29,7 +29,7 @@ struct LinkerSetEntryMacroTests {
                 #elseif objectFormat(ELF)
                 @section("linker_sets")
                 #endif
-                @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x726F_7574, 0, { outValue, type, _, _ in
+                @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x726F7574, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Self.home, into: outValue, ifAsked: type)
                     }, 0, 0)
             }
@@ -64,7 +64,7 @@ struct LinkerSetEntryMacroTests {
                 #elseif objectFormat(ELF)
                 @section("linker_sets")
                 #endif
-                @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (42, 0, { outValue, type, _, _ in
+                @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x0000002A, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Self.handle(_:retries:) as (Request, Int...) async throws(HandlerError) -> Response, into: outValue, ifAsked: type)
                     }, 0, 0)
             }
@@ -92,7 +92,7 @@ struct LinkerSetEntryMacroTests {
             #elseif objectFormat(ELF)
             @section("linker_sets")
             #endif
-            @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0b1, 0, { outValue, type, _, _ in
+            @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
                     LinkerSets.LinkerSetRecord.__store(migrate as () -> Void, into: outValue, ifAsked: type)
                 }, 0, 0)
             """
@@ -119,7 +119,7 @@ struct LinkerSetEntryMacroTests {
             #elseif objectFormat(ELF)
             @section("linker_sets")
             #endif
-            @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0o7, 0, { outValue, type, _, _ in
+            @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000007, 0, { outValue, type, _, _ in
                     LinkerSets.LinkerSetRecord.__store(banner, into: outValue, ifAsked: type)
                 }, 0, 0)
             """
@@ -148,7 +148,7 @@ struct LinkerSetEntryMacroTests {
             #elseif objectFormat(ELF)
             @section("linker_sets")
             #endif
-            @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (1, 0, { outValue, type, _, _ in
+            @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x00000001, 0, { outValue, type, _, _ in
                     LinkerSets.LinkerSetRecord.__store(first, into: outValue, ifAsked: type)
                 }, 0, 0)
             let last = 2
@@ -158,7 +158,7 @@ struct LinkerSetEntryMacroTests {
             #elseif objectFormat(ELF)
             @section("linker_sets")
             #endif
-            @used private let __macro_local_15linkerSetRecordfMu0_: LinkerSets.LinkerSetRecord.Literal = (0xFFFF_FFFF, 0, { outValue, type, _, _ in
+            @used private let __macro_local_15linkerSetRecordfMu0_: LinkerSets.LinkerSetRecord.Literal = (0xFFFFFFFF, 0, { outValue, type, _, _ in
                     LinkerSets.LinkerSetRecord.__store(last, into: outValue, ifAsked: type)
                 }, 0, 0)
             """

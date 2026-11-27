@@ -66,11 +66,15 @@ let paths = LinkerSet<Route>(kind: LinkerSetKind(rawValue: 0x726F_7574)).values.
 // "/" and "/settings", in link order
 ```
 
+A client that registers one kind of thing can give it a macro of its own, such as `@Route` with
+the kind fixed, in a few lines on top of `LinkerSetsMacroSupport`. Its DocC catalog shows how.
+
 ## Modules
 
 | Module | Holds |
 |---|---|
 | `LinkerSets` | `@LinkerSetEntry`, which registers a declaration; `LinkerSet`, the records of one kind found at run time; `LinkerSetRecord`, the record each entry is; and `LinkerSetKind`, the kind that tags it |
+| `LinkerSetsMacroSupport` | `LinkerSetMacro`, the expansion a client's own macro plugin shares, so `@Route` writes the same record with the client's kind |
 
 ## Development
 

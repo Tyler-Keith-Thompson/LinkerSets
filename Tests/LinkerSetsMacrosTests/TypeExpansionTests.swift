@@ -34,6 +34,10 @@ struct TypeExpansionTests {
             @section(".note.linker_sets") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x65766E74, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Login.self as any (ExampleEvents.AnalyticsEvent).Type, into: outValue, ifAsked: type)
                     }, 0, 0))
+            #elseif objectFormat(Wasm)
+            @section("linker_sets") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x65766E74, 0, { outValue, type, _, _ in
+                    LinkerSets.LinkerSetRecord.__store(Login.self as any (ExampleEvents.AnalyticsEvent).Type, into: outValue, ifAsked: type)
+                }, 0, 0)
             #endif
             """
 
@@ -66,6 +70,10 @@ struct TypeExpansionTests {
             @section(".note.linker_sets") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x65766E74, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Logout.self as any (ExampleEvents.AnalyticsEvent).Type, into: outValue, ifAsked: type)
                     }, 0, 0))
+            #elseif objectFormat(Wasm)
+            @section("linker_sets") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x65766E74, 0, { outValue, type, _, _ in
+                    LinkerSets.LinkerSetRecord.__store(Logout.self as any (ExampleEvents.AnalyticsEvent).Type, into: outValue, ifAsked: type)
+                }, 0, 0)
             #endif
             """
 
@@ -101,6 +109,10 @@ struct TypeExpansionTests {
                 @section(".note.linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x65766E74, 0, { outValue, type, _, _ in
                             LinkerSets.LinkerSetRecord.__store(Self.Purchase.self as any (ExampleEvents.AnalyticsEvent).Type, into: outValue, ifAsked: type)
                         }, 0, 0))
+                #elseif objectFormat(Wasm)
+                @section("linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x65766E74, 0, { outValue, type, _, _ in
+                        LinkerSets.LinkerSetRecord.__store(Self.Purchase.self as any (ExampleEvents.AnalyticsEvent).Type, into: outValue, ifAsked: type)
+                    }, 0, 0)
                 #endif
             }
             """
@@ -137,6 +149,10 @@ struct TypeExpansionTests {
                 @section(".note.linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x65766E74, 0, { outValue, type, _, _ in
                             LinkerSets.LinkerSetRecord.__store(Self.Refund.self as any (ExampleEvents.AnalyticsEvent).Type, into: outValue, ifAsked: type)
                         }, 0, 0))
+                #elseif objectFormat(Wasm)
+                @section("linker_sets") @used private static let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x65766E74, 0, { outValue, type, _, _ in
+                        LinkerSets.LinkerSetRecord.__store(Self.Refund.self as any (ExampleEvents.AnalyticsEvent).Type, into: outValue, ifAsked: type)
+                    }, 0, 0)
                 #endif
             }
             """
@@ -170,6 +186,10 @@ struct TypeExpansionTests {
             @section(".note.linker_sets") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), (0x706C7567, 0, { outValue, type, _, _ in
                         LinkerSets.LinkerSetRecord.__store(Plugin.self as Any.Type, into: outValue, ifAsked: type)
                     }, 0, 0))
+            #elseif objectFormat(Wasm)
+            @section("linker_sets") @used private let __macro_local_15linkerSetRecordfMu_: LinkerSets.LinkerSetRecord.Literal = (0x706C7567, 0, { outValue, type, _, _ in
+                    LinkerSets.LinkerSetRecord.__store(Plugin.self as Any.Type, into: outValue, ifAsked: type)
+                }, 0, 0)
             #endif
             """
 

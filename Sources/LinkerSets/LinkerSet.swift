@@ -1,15 +1,17 @@
-#if objectFormat(MachO) || objectFormat(ELF)
+#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm)
 /// Every record of one kind, across every image the program has loaded, and the values they
 /// produce.
 ///
 /// Records are declared at compile time as `@used` globals in the section LinkerSets owns. In a
 /// Mach-O image that is `__DATA_CONST,__linker_sets`, each record a ``LinkerSetRecord/Literal``.
 /// In an ELF image it is the note section `.note.linker_sets`, each record wrapped in a
-/// ``LinkerSetRecord/Note``. A linker set finds them at run time in every image the loader has
-/// mapped: the program, the shared libraries it was linked with, and any loaded later with
-/// `dlopen`. On Apple platforms it reads each image's section through the loader's list of
-/// images; on ELF platforms (Linux, Android, FreeBSD) it reads each image's note segments
-/// through `dl_iterate_phdr`:
+/// ``LinkerSetRecord/Note``. In a WebAssembly module it is the data section `linker_sets`. A
+/// linker set finds them at run time in every image the loader has mapped: the program, the
+/// shared libraries it was linked with, and any loaded later with `dlopen`. On Apple platforms it
+/// reads each image's section through the loader's list of images; on ELF platforms (Linux,
+/// Android, FreeBSD) it reads each image's note segments through `dl_iterate_phdr`; on
+/// WebAssembly (WASI), whose program is one statically linked module, it reads the section
+/// between the `__start_linker_sets` and `__stop_linker_sets` symbols wasm-ld defines:
 ///
 /// ```swift
 /// let routes = LinkerSet<Route>(kind: .routes).values

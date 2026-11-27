@@ -1,6 +1,6 @@
 // The README's examples, verbatim, so the README cannot drift from the code.
 
-#if objectFormat(MachO) || objectFormat(ELF)
+#if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm)
 import LinkerSets
 import Testing
 

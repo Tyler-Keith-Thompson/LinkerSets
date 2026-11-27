@@ -1,4 +1,4 @@
-@_exported import LinkerSets
+@_exported import LinkerSetsRuntime
 
 // A second client, declared the same way as ExampleRoutes' routes with a kind of its own, kept
 // internal like theirs.

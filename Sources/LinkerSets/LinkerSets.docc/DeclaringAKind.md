@@ -4,7 +4,7 @@ Pick the number that tags your declarations, and decide whether your users write
 
 ## Overview
 
-A kind is a 32-bit number that every record carries. A ``LinkerSet`` of a kind holds the records
+A kind is a 32-bit number that every record carries. A ``/LinkerSetsRuntime/LinkerSet`` of a kind holds the records
 declared with that kind and no others, so one program can hold your routes, another library's
 analytics events and a third's migrations without any of them seeing the others.
 

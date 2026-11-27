@@ -198,7 +198,7 @@ swift_library(
     srcs = ["ExportingClient/Probe.swift"],
     module_name = "ExportingClient",
     plugins = ["//Sources/ExampleRoutesMacros"],
-    deps = ["//Sources/LinkerSets"],
+    deps = ["//Sources/LinkerSetsRuntime"],
 )
 
 swift_library(
@@ -207,7 +207,7 @@ swift_library(
     srcs = ["ImportingClient/Probe.swift"],
     module_name = "ImportingClient",
     plugins = ["//Sources/ExampleRoutesMacros"],
-    deps = ["//Sources/LinkerSets"],
+    deps = ["//Sources/LinkerSetsRuntime"],
 )
 
 swift_compile_failure_test(
@@ -234,8 +234,8 @@ swift_compile_failure_test(
     size = "small",
     src = "ImportingClientUser.swift",
     expected_errors = [
-        "error: cannot find type 'LinkerSets' in scope",
-        "error: cannot find 'LinkerSets' in scope",
+        "error: cannot find type 'LinkerSetsRuntime' in scope",
+        "error: cannot find 'LinkerSetsRuntime' in scope",
     ],
     plugin = "//Sources/ExampleRoutesMacros",
     plugin_module_name = "ExampleRoutesMacros",
@@ -250,5 +250,5 @@ swift_compile_failure_test(
     plugin = "//Sources/ExampleRoutesMacros",
     plugin_module_name = "ExampleRoutesMacros",
     tags = ["debug-only"],
-    deps = [":ImportingClient"],
+    deps = [":ImportingClient", "//Sources/LinkerSets"],
 )

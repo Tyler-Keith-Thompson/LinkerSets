@@ -1,7 +1,7 @@
 // Records and sections built by hand to fail: each failure is a typed error or is skipped as
 // documented, never a trap. Each test is self-contained.
 
-@testable import LinkerSets
+@testable import LinkerSetsRuntime
 import LinkerSetsTestSupport
 import PropertyBased
 import Testing

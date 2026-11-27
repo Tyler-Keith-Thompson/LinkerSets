@@ -41,11 +41,11 @@ public enum EventMacro: LinkerSetMacro {
 }
 ```
 
-The library declares the macro and the kind, re-exports LinkerSets for the expansion, and reads
-the set for its users:
+The library declares the macro and the kind, re-exports LinkerSetsRuntime for the expansion, and
+reads the set for its users:
 
 ```swift
-@_exported import LinkerSets
+@_exported import LinkerSetsRuntime
 
 extension LinkerSetKind {
     static let events = LinkerSetKind(rawValue: 0x6576_6E74)  // "evnt"
@@ -62,10 +62,12 @@ public enum AnalyticsEvents {
 ```
 
 The re-export is required. The expansion lands in each user's file and names
-`LinkerSets.LinkerSetRecord` there, so that file must see the LinkerSets module. A library that
-imports LinkerSets without re-exporting it leaves its users' files failing with "cannot find
-'LinkerSets' in scope" unless each one imports LinkerSets too. The re-export also puts
-``LinkerSet`` and ``LinkerSetKind`` in scope wherever the library is imported. Keep the kind
+`LinkerSetsRuntime.LinkerSetRecord` there, so that file must see the LinkerSetsRuntime module. A
+library that imports it without re-exporting it leaves its users' files failing with "cannot find
+'LinkerSetsRuntime' in scope" unless each one imports it too. The library depends on
+LinkerSetsRuntime, not LinkerSets: its own plugin writes the records, so it needn't build
+LinkerSets' plugin as well. The re-export also puts
+``/LinkerSetsRuntime/LinkerSet`` and ``/LinkerSetsRuntime/LinkerSetKind`` in scope wherever the library is imported. Keep the kind
 internal and hand users the values through the library's own API (`AnalyticsEvents.all`), so the
 set is read in one place.
 

@@ -3,7 +3,7 @@
 // and builds its own bytes.
 
 #if objectFormat(ELF)
-@testable import LinkerSets
+@testable import LinkerSetsRuntime
 import LinkerSetsTestSupport
 import PropertyBased
 import Testing

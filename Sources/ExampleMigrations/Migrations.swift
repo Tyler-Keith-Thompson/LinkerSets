@@ -1,4 +1,4 @@
-import LinkerSets
+import LinkerSetsRuntime
 
 /// The example app's schema migrations, each registered with ``Migration()``. A schema here
 /// is the list of its tables' names.

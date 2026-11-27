@@ -26,10 +26,12 @@ public enum RouteMacro: LinkerSetMacro {
 ```
 
 The client's library declares the macro, the same kind, and the read of the set. It re-exports
-LinkerSets, because the expansion names LinkerSets' types in its users' files:
+LinkerSetsRuntime, because the expansion names its types in its users' files. The client's own
+plugin writes the records, so its library needs nothing else from LinkerSets: depending on
+LinkerSetsRuntime alone, it doesn't build LinkerSets' own plugin.
 
 ```swift
-@_exported import LinkerSets
+@_exported import LinkerSetsRuntime
 
 extension LinkerSetKind {
     static let routes = LinkerSetKind(rawValue: 0x726F_7574)  // "rout"
@@ -57,10 +59,12 @@ let endpoints = Endpoints.all
 
 ### What the re-export exposes
 
-The expansion is written into each user's file and names `LinkerSets.LinkerSetRecord` there, so
-that file has to see the LinkerSets module. With `@_exported import LinkerSets` in the client's
-library, importing the client is enough. With a plain or `public import`, every user's file fails
-to compile with "cannot find 'LinkerSets' in scope" until it imports LinkerSets itself. The
+The expansion is written into each user's file and names `LinkerSetsRuntime.LinkerSetRecord`
+there, so that file has to see the LinkerSetsRuntime module. With `@_exported import
+LinkerSetsRuntime` in the client's library (or `@_exported import LinkerSets`, which re-exports
+it), importing the client is enough. With a plain or `public import`, every user's file fails to
+compile with "cannot find 'LinkerSetsRuntime' in scope" until it imports LinkerSetsRuntime or
+LinkerSets itself. The
 compile tests in `Tests/CompileFailures` (`ExportingClientUser`, `ImportingClientUser` and
 `ImportingClientUserImportingLinkerSets`) check each case.
 

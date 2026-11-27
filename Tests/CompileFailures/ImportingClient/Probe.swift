@@ -1,6 +1,6 @@
 // A client library that imports LinkerSets without re-exporting it, for its own reads. Its users'
 // files don't see the module name the macro's expansion uses.
-import LinkerSets
+import LinkerSetsRuntime
 
 extension LinkerSetKind {
     /// Internal: only this library reads the set.

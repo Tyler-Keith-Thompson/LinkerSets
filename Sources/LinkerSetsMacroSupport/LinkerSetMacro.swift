@@ -109,22 +109,22 @@ extension LinkerSetMacro {
         }
         let name = context.makeUniqueName("linkerSetRecord")
         let storage = site.isMember ? "private static let" : "private let"
-        let record: ExprSyntax = "(\(raw: kind.hexadecimalLiteral), 0, { outValue, type, _, _ in LinkerSets.LinkerSetRecord.__store(\(value), into: outValue, ifAsked: type) }, 0, 0)"
+        let record: ExprSyntax = "(\(raw: kind.hexadecimalLiteral), 0, { outValue, type, _, _ in LinkerSetsRuntime.LinkerSetRecord.__store(\(value), into: outValue, ifAsked: type) }, 0, 0)"
         // An ELF image holds each record as a note (LinkerSetRecord.Note) whose header gives the
         // record's size, a literal that differs with the pointer width; a section's initializer is
         // a constant expression, so each width gets a declaration of its own.
         return [
             """
             #if objectFormat(MachO)
-            @section("__DATA_CONST,__linker_sets") @used \(raw: storage) \(name): LinkerSets.LinkerSetRecord.Literal = \(record)
+            @section("__DATA_CONST,__linker_sets") @used \(raw: storage) \(name): LinkerSetsRuntime.LinkerSetRecord.Literal = \(record)
             #elseif objectFormat(ELF) && _pointerBitWidth(_64)
-            @section(".note.linker_sets") @used \(raw: storage) \(name): LinkerSets.LinkerSetRecord.Note = (11, 32, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), \(record))
+            @section(".note.linker_sets") @used \(raw: storage) \(name): LinkerSetsRuntime.LinkerSetRecord.Note = (11, 32, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), \(record))
             #elseif objectFormat(ELF) && _pointerBitWidth(_32)
-            @section(".note.linker_sets") @used \(raw: storage) \(name): LinkerSets.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), \(record))
+            @section(".note.linker_sets") @used \(raw: storage) \(name): LinkerSetsRuntime.LinkerSetRecord.Note = (11, 20, 1, (76, 105, 110, 107, 101, 114, 83, 101, 116, 115, 0, 0), \(record))
             #elseif objectFormat(Wasm)
-            @section("linker_sets") @used \(raw: storage) \(name): LinkerSets.LinkerSetRecord.Literal = \(record)
+            @section("linker_sets") @used \(raw: storage) \(name): LinkerSetsRuntime.LinkerSetRecord.Literal = \(record)
             #elseif objectFormat(COFF)
-            @section(".lnkset$M") @used \(raw: storage) \(name): LinkerSets.LinkerSetRecord.Literal = \(record)
+            @section(".lnkset$M") @used \(raw: storage) \(name): LinkerSetsRuntime.LinkerSetRecord.Literal = \(record)
             #endif
             """,
         ]

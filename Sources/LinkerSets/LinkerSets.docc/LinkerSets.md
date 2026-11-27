@@ -10,7 +10,7 @@ clients share the mechanism without seeing each other's records. Failures are ty
 run-time API never traps.
 
 A declaration registers itself with ``LinkerSetEntry(kind:)``, tagged with a kind: four ASCII
-characters read as a 32-bit integer. A ``LinkerSet`` of that kind finds every such declaration
+characters read as a 32-bit integer. A ``/LinkerSetsRuntime/LinkerSet`` of that kind finds every such declaration
 at run time:
 
 ```swift
@@ -44,6 +44,6 @@ how.
 
 ### Finding records
 
-- ``LinkerSet``
-- ``LinkerSetRecord``
-- ``LinkerSetKind``
+LinkerSets re-exports ``/LinkerSetsRuntime``, which holds ``/LinkerSetsRuntime/LinkerSet``,
+``/LinkerSetsRuntime/LinkerSetRecord`` and ``/LinkerSetsRuntime/LinkerSetKind``. A module that only
+reads records depends on LinkerSetsRuntime alone and builds no macros.

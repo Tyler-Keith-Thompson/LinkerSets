@@ -1,7 +1,7 @@
 // The walk over a section the linker may pad between contributions (COFF), on bytes built by hand,
 // so it runs on every platform. Each test is self-contained and builds its own bytes.
 
-@testable import LinkerSets
+@testable import LinkerSetsRuntime
 import LinkerSetsTestSupport
 import PropertyBased
 import Testing

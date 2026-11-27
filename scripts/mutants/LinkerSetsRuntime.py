@@ -1,6 +1,6 @@
-# Planted bugs for LinkerSets; run with `just mutate LinkerSets`. See scripts/mutate.py.
+# Planted bugs for LinkerSetsRuntime; run with `just mutate LinkerSetsRuntime`. See scripts/mutate.py.
 #
-# Each mutant is Mutant(name, file, old, new), where `old` occurs once in Sources/LinkerSets/<file>
+# Each mutant is Mutant(name, file, old, new), where `old` occurs once in Sources/LinkerSetsRuntime/<file>
 # (or `nth=` picks one), and mode="stmt" replaces whole statements rather than an expression.
 # Every mutant must be caught; one that survives needs a test, or a note here saying why it is
 # equivalent to the original.

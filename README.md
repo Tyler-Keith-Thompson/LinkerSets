@@ -170,11 +170,16 @@ Then add the product to your target:
 ]),
 ```
 
+A module that marks declarations with `@LinkerSetEntry` depends on `LinkerSets`. A module that
+only reads records, and a library whose own macro writes them, depends on `LinkerSetsRuntime`
+instead. It holds `LinkerSet` and has no macros, so it doesn't build swift-syntax.
+
 ## Modules
 
 | Module | Holds |
 |---|---|
-| `LinkerSets` | `@LinkerSetEntry`, which marks a declaration; `LinkerSet`, which finds every declaration of a kind; `LinkerSetKind`; and `LinkerSetRecord`, the record each mark becomes |
+| `LinkerSets` | `@LinkerSetEntry`, which marks a declaration, with `LinkerSetsRuntime` re-exported |
+| `LinkerSetsRuntime` | `LinkerSet`, which finds every declaration of a kind; `LinkerSetKind`; and `LinkerSetRecord`, the record each mark becomes. No macros, so no swift-syntax |
 | `LinkerSetsMacroSupport` | `LinkerSetMacro`, for writing your own macro with the kind built in |
 
 ## Development

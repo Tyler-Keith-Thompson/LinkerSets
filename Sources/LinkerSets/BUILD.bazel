@@ -3,15 +3,13 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# LinkerSet, LinkerSetRecord and LinkerSetKind: the records of one kind found at run time, the record each entry is, and the kind that tags it.
+# @LinkerSetEntry, which turns a declaration into a record, with LinkerSetsRuntime re-exported to read them.
 swift_library(
     name = "LinkerSets",
     srcs = glob(["**/*.swift"]),
     module_name = "LinkerSets",
-    # Language features (EXPERIMENTAL_FEATURES, UPCOMING_FEATURES in scripts/modules.py).
-    copts = [
-        "-enable-experimental-feature",
-        "Extern",
+    deps = [
+        "//Sources/LinkerSetsRuntime",
     ],
     plugins = [
         "//Sources/LinkerSetsMacros",
@@ -24,6 +22,9 @@ docc_archive(
     name = "LinkerSetsDocumentation",
     module = ":LinkerSets",
     catalog = glob(["*.docc/**"], allow_empty = True),
+    deps = [
+        "//Sources/LinkerSetsRuntime:LinkerSetsRuntimeDocumentation",
+    ],
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )

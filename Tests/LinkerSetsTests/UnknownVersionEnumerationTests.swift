@@ -3,7 +3,7 @@
 // "lsv1" belongs to this file alone.
 
 #if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm) || objectFormat(COFF)
-@testable import LinkerSets
+@testable import LinkerSetsRuntime
 import Testing
 
 #if objectFormat(MachO)

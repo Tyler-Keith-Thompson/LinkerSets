@@ -1,4 +1,4 @@
-@_exported import LinkerSets
+@_exported import LinkerSetsRuntime
 
 // A client's declarations: its kind, its macro, whose plugin (ExampleRoutesMacros) gives the same
 // kind to every record it writes, and the read of the set. The kind is internal: the re-export

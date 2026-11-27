@@ -3,7 +3,8 @@
 
 #if objectFormat(MachO) || objectFormat(ELF) || objectFormat(Wasm) || objectFormat(COFF)
 import Generators
-@testable import LinkerSets
+import LinkerSets
+@testable import LinkerSetsRuntime
 import LinkerSetsTestSupport
 import PropertyBased
 import Sampling

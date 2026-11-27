@@ -12,4 +12,5 @@ EXAMPLE_PACKAGES = [
     "Sources/ExampleEventsMacros",
     "Sources/ExampleDynamicPlugins",
     "Sources/ExampleLoadedPlugins",
+    "Sources/ExampleCatalog",
 ]

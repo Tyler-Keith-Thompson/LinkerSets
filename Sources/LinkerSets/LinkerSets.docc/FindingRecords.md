@@ -4,7 +4,7 @@ Read every declaration of a kind, as the type you expect.
 
 ## Overview
 
-A ``LinkerSet`` names a kind and a type. Its ``LinkerSet/values`` are the values of every record of
+A ``/LinkerSetsRuntime/LinkerSet`` names a kind and a type. Its ``/LinkerSetsRuntime/LinkerSet/values`` are the values of every record of
 that kind that produces the type:
 
 ```swift
@@ -37,15 +37,15 @@ let migrations = LinkerSet<Migration>(kind: .migrations).values.sorted { $0.vers
 
 ### When records are read
 
-Nothing runs at launch. Each read of `values` or ``LinkerSet/records`` asks the loader for its
+Nothing runs at launch. Each read of `values` or ``/LinkerSetsRuntime/LinkerSet/records`` asks the loader for its
 images and walks their records, so a read after `dlopen` includes the new library's records. A read
 walks every record of every kind, O(*n*) in their number; keep the result rather than reading it in
 a hot loop.
 
 ### Records one at a time
 
-``LinkerSet/records`` gives the records themselves, of the set's kind, before any type is asked
-for. ``LinkerSetRecord/value(as:)`` asks one record for a value and says why it can't produce one:
+``/LinkerSetsRuntime/LinkerSet/records`` gives the records themselves, of the set's kind, before any type is asked
+for. ``/LinkerSetsRuntime/LinkerSetRecord/value(as:)`` asks one record for a value and says why it can't produce one:
 
 ```swift
 for record in LinkerSet<Route>(kind: .routes).records {

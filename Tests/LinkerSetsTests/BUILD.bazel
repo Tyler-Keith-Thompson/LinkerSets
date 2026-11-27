@@ -20,6 +20,8 @@ swift_library(
     visibility = ["//:__pkg__"],
     deps = [
         "//Sources/LinkerSets",
+        "//Sources/LinkerSetsRuntime",
+        "//Sources/ExampleCatalog",
         "//Sources/ExampleRoutes",
         "//Sources/ExampleMigrations",
         "//Sources/ExampleEvents",
@@ -66,6 +68,8 @@ swift_library(
     target_compatible_with = ["@platforms//os:ios"],
     deps = [
         "//Sources/LinkerSets",
+        "//Sources/LinkerSetsRuntime",
+        "//Sources/ExampleCatalog",
         "//Sources/ExampleRoutes",
         "//Sources/ExampleMigrations",
         "//Sources/ExampleEvents",
@@ -111,6 +115,8 @@ swift_library(
     visibility = ["//:__pkg__"],
     deps = [
         "//Sources/LinkerSets",
+        "//Sources/LinkerSetsRuntime",
+        "//Sources/ExampleCatalog",
         "//Sources/ExampleRoutes",
         "//Sources/ExampleMigrations",
         "//Sources/ExampleEvents",

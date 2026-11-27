@@ -9,7 +9,7 @@ swift_library(
     srcs = glob(["**/*.swift"]),
     module_name = "ExampleMigrations",
     deps = [
-        "//Sources/LinkerSets",
+        "//Sources/LinkerSetsRuntime",
     ],
     plugins = [
         "//Sources/ExampleMigrationsMacros",

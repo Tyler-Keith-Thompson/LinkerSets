@@ -109,7 +109,21 @@ A symbol declared inside a `private` or `fileprivate` type, or an extension mark
 local to its file, and the linker never compares local symbols. The macros refuse a unique key
 there: "can't check its unique key inside a private or fileprivate type". The enclosing type can be
 seen from swift-syntax 600 on. With an older swift-syntax the key in such a type compiles and goes
-unchecked. A key that is empty, or a `uniqueKey:` argument that isn't a string literal or holds an
+unchecked.
+
+A client macro can drop the key there instead of refusing the declaration, when its users declare
+same-named types in private scopes on purpose, such as test suites that each declare an event
+called `Login`. It returns `.omitted` from LinkerSetsMacroSupport's `uniqueKeyInPrivateScope`:
+
+```swift
+public enum EventMacro: LinkerSetMacro {
+    public static var uniqueKeyInPrivateScope: UniqueKeyInPrivateScope { .omitted }
+    // kind(of:) and uniqueKey(of:attribute:) as before
+}
+```
+
+The record is still written, without the key, so nothing checks it. The macro decides which scopes
+are private by the same rule as the refusal, so the two can't disagree. A key that is empty, or a `uniqueKey:` argument that isn't a string literal or holds an
 interpolation, is refused too (<doc:WhatTheMacrosRefuse>).
 
 ### What is tested where

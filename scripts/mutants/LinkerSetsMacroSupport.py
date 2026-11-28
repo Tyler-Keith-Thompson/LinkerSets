@@ -20,7 +20,9 @@ MUTANTS = [
     # Whether the function is written, and where.
     Mutant("keyignored", L, 'return ["@_silgen_name(\\(literal: symbol)) @used nonisolated \\(raw: staticKeyword)func \\(name)() {}"]', "return []", mode="stmt"),
     Mutant("emptykeyaccepted", L, "!key.isEmpty", "true"),
-    Mutant("privatescopeaccepted", L, "!site.isInPrivateScope", "true"),
+    Mutant("privatescopeaccepted", L, "site.isInPrivateScope", "false"),
+    Mutant("omittedkeywritten", L, "return []", "", mode="stmt", nth=1),
+    Mutant("omittedbydefault", L, ".refused", ".omitted", nth=0),
     Mutant("neverstatic", L, 'site.isMember ? "static " : ""', '""'),
     Mutant("fileprivateunseen", L, "($0.name.tokenKind == .keyword(.private) || $0.name.tokenKind == .keyword(.fileprivate))", "$0.name.tokenKind == .keyword(.private)"),
 

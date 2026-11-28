@@ -127,7 +127,9 @@ public enum EventMacro: LinkerSetMacro {
 
 A macro whose users write the key returns ``LinkerSetMacro/uniqueKeyArgument(of:)``, which reads a
 `uniqueKey:` string literal. An empty key, and a key on a member of a private type, are refused
-with diagnostics of their own. The check reaches one linked image only; LinkerSets' guide to unique
+with diagnostics of their own. A macro whose users declare same-named types in private scopes on
+purpose returns ``UniqueKeyInPrivateScope/omitted`` from ``LinkerSetMacro/uniqueKeyInPrivateScope``,
+and such a record is written without its key. The check reaches one linked image only; LinkerSets' guide to unique
 keys shows each linker's message and the limits.
 
 ### Declaring the kind once
@@ -338,6 +340,7 @@ docs.
 
 - ``LinkerSetMacro``
 - ``LinkerSetRecordMacro``
+- ``UniqueKeyInPrivateScope``
 
 ### Diagnostics
 

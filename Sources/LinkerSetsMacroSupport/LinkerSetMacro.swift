@@ -43,7 +43,8 @@ import SwiftSyntaxBuilder
 /// It diagnoses anything else, each with a message of its own: generic functions and types,
 /// members of generic types, instance members, protocol requirements, declarations inside a
 /// function, closure or accessor, a kind that isn't a 32-bit literal other than 0, and a unique key
-/// that is empty or sits in a private or fileprivate type.
+/// that is empty or sits in a private or fileprivate type, unless ``uniqueKeyInPrivateScope`` says
+/// to omit that one.
 ///
 /// A member of an extension of a generic type is refused when the extension names generic
 /// arguments or has a `where` clause. A plain `extension Box` of `struct Box<T>` doesn't show that
@@ -108,6 +109,12 @@ public protocol LinkerSetMacro: PeerMacro {
     /// - Throws: A diagnostic when the declaration or attribute doesn't give a key the macro can
     ///   use.
     static func uniqueKey(of declaration: some DeclSyntaxProtocol, attribute: AttributeSyntax) throws -> String?
+
+    /// What the expansion does with a key from ``uniqueKey(of:attribute:)`` on a declaration inside
+    /// a `private` or `fileprivate` type or extension, whose symbol the linker would never compare:
+    /// ``UniqueKeyInPrivateScope/refused`` unless the client returns
+    /// ``UniqueKeyInPrivateScope/omitted``.
+    static var uniqueKeyInPrivateScope: UniqueKeyInPrivateScope { get }
 }
 
 extension LinkerSetMacro {
@@ -123,6 +130,9 @@ extension LinkerSetMacro {
     public static func uniqueKey(of declaration: some DeclSyntaxProtocol, attribute: AttributeSyntax) throws -> String? {
         nil
     }
+
+    /// ``UniqueKeyInPrivateScope/refused``: a key that would go unchecked is an error.
+    public static var uniqueKeyInPrivateScope: UniqueKeyInPrivateScope { .refused }
 
     /// The record that `declaration` becomes, as a peer:
     /// ``recordPeers(of:providingPeersOf:in:)``.
@@ -174,7 +184,7 @@ extension LinkerSetMacro {
     }
 
     /// The function whose symbol stands for the declaration's ``uniqueKey(of:attribute:)``, or none
-    /// when it has no key.
+    /// when it has no key, or sits in a private scope and ``uniqueKeyInPrivateScope`` omits it.
     ///
     /// The function is internal, not private: a private symbol is local to its object file, and
     /// the linker never compares local symbols. Internal is hidden from other images, which keeps
@@ -183,8 +193,11 @@ extension LinkerSetMacro {
     private static func uniqueKeyPeers(of declaration: some DeclSyntaxProtocol, attribute: AttributeSyntax, kind: UInt32, site: RecordSite, macroName: String, in context: some MacroExpansionContext) throws -> [DeclSyntax] {
         guard let key = try uniqueKey(of: declaration, attribute: attribute) else { return [] }
         guard !key.isEmpty else { throw LinkerSetMacroDiagnostic(.emptyUniqueKey, macroName: macroName, at: attribute).error }
-        guard !site.isInPrivateScope else {
-            throw LinkerSetMacroDiagnostic(.uniqueKeyInPrivateScope, macroName: macroName, at: declaration).error
+        if site.isInPrivateScope {
+            switch uniqueKeyInPrivateScope {
+            case .refused: throw LinkerSetMacroDiagnostic(.uniqueKeyInPrivateScope, macroName: macroName, at: declaration).error
+            case .omitted: return []
+            }
         }
         let symbol = "$linkerset_kind_" + String(kind.hexadecimalLiteral.dropFirst(2)) + "_key_" + key.symbolEncoded
         let name = context.makeUniqueName("linkerSetUniqueKey")

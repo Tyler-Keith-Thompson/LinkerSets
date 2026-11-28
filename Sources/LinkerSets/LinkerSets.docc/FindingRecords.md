@@ -24,6 +24,33 @@ What you ask for depends on what was marked:
 A record of the right kind but another type is left out of `values`. Nothing traps, and nothing
 throws: a set with no matching records is empty.
 
+### Types registered by hand
+
+`@LinkerSetEntry` on a type stores it as `Any.Type`, so a `LinkerSet<any Step.Type>` doesn't find
+it. A client macro that requires `Step` stores `any Step.Type`; until there is one (or in tests
+that use a kind of their own), mark a static let typed as the existential metatype:
+
+```swift
+protocol Step: SendableMetatype {
+    static var name: String { get }
+}
+
+struct First: Step { static let name = "first" }
+
+enum Steps {
+    @LinkerSetEntry(kind: .steps)
+    static let first: any Step.Type = First.self
+}
+
+let steps = LinkerSet<any Step.Type>(kind: .steps).values
+```
+
+`Step` refines `SendableMetatype` because a static let must be `Sendable` in Swift 6, and
+`any Step.Type` is `Sendable` only when the protocol says its metatypes are. Without it the
+compiler warns that the property isn't concurrency-safe (`MutableGlobalVariable`), which is an
+error in a build that treats warnings as errors. A `@MainActor` protocol, such as a UIKit delegate
+protocol, refines it the same way.
+
 ### Order
 
 Records come back image by image in the order the loader lists them (the program, then its

@@ -324,6 +324,14 @@ throws it. Where a declaration sits (in a function's body, a protocol or a gener
 from swift-syntax 600 on; before it those three aren't returned, and the compiler refuses them in
 the expansion.
 
+A member declared in an extension of a generic type is refused only when the extension shows the
+type is generic: by naming generic arguments (`extension Box<Int>`, `extension [Int]`) or with a
+`where` clause. A plain `extension Box` of `struct Box<T>` reads like an extension of any other
+type, because the macro sees the extension's syntax and not `Box`'s declaration. No refusal is
+returned for it, and the compiler fails inside the expansion with "static stored properties not
+supported in generic types". A client macro whose users might write one can say so in its own
+docs.
+
 ## Topics
 
 ### Declaring a macro

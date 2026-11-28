@@ -20,7 +20,7 @@ where they are written. The messages name the attribute as written, so a client'
 | on `static let (a, b) = (1, 2)` | applies to a variable with a name, not a tuple pattern |
 | on `func make<T>() -> T` | cannot apply to a generic function: a record holds one concrete value |
 | on `struct Box<T>` | cannot apply to a generic type: a record holds one concrete type |
-| on a static member of `struct Box<T>` | cannot apply to a member of a generic type: a record holds one concrete value |
+| on a static member of `struct Box<T>`, `extension Box<Int>` or `extension Box where T == Int` | cannot apply to a member of a generic type: a record holds one concrete value |
 | on a protocol's requirement | cannot apply to a protocol's requirement: a record holds a value, and a requirement has none of its own |
 | on `@MainActor static let back`, or a `static var` of a `@MainActor` type | cannot apply to a property isolated to the main actor: a record's accessor is nonisolated and can't read it; mark the property nonisolated, or register a @MainActor function that returns it |
 | inside a function, closure or accessor | applies at file scope or in a type, not inside a function, closure or accessor: a record is a global |
@@ -45,6 +45,10 @@ unique key in a private type) need
 swift-syntax 600 or later, where a macro can see what surrounds it. With an older swift-syntax the
 compiler still refuses each of these, inside the expanded code, and a registered type must sit at
 file scope.
+
+A plain `extension Box` of a generic `Box` is the one member of a generic type the macros can't
+see: the extension doesn't say `Box` is generic. The compiler refuses it inside the expanded code,
+with "static stored properties not supported in generic types".
 
 Each of these is pinned by a test that must fail to compile, in `Tests/CompileFailures`.
 

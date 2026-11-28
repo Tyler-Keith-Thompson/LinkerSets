@@ -45,6 +45,10 @@ import SwiftSyntaxBuilder
 /// function, closure or accessor, a kind that isn't a 32-bit literal other than 0, and a unique key
 /// that is empty or sits in a private or fileprivate type.
 ///
+/// A member of an extension of a generic type is refused when the extension names generic
+/// arguments or has a `where` clause. A plain `extension Box` of `struct Box<T>` doesn't show that
+/// `Box` is generic, so the compiler refuses that member in the expansion instead.
+///
 /// A member's record names it through the enclosing types, `Scheduler.Jobs.clean`, which works
 /// in a class or an actor too.
 ///
@@ -317,7 +321,7 @@ private struct RecordSite {
             scopeRefusal = .localDeclaration
         } else if lexicalContext.first?.is(ProtocolDeclSyntax.self) == true {
             scopeRefusal = .protocolRequirement
-        } else if lexicalContext.contains(where: { NominalType($0)?.isGeneric == true }) {
+        } else if lexicalContext.contains(where: \.isGenericScope) {
             scopeRefusal = .memberOfGenericType
         } else {
             scopeRefusal = nil
@@ -398,10 +402,33 @@ extension Syntax {
         return nil
     }
 
+    /// Whether this is a generic type, or an extension whose syntax shows it extends one.
+    ///
+    /// An extension says its type is generic only through generic arguments (`extension Box<Int>`,
+    /// `extension [Int]`) or a `where` clause, which only a generic type's or a protocol's
+    /// extension may have. A plain `extension Box` of `struct Box<T>` looks like an extension of a
+    /// non-generic type, so a member there is left for the compiler to refuse in the expansion.
+    var isGenericScope: Bool {
+        if let type = NominalType(self) { return type.isGeneric }
+        guard let extensionDecl = `as`(ExtensionDeclSyntax.self) else { return false }
+        return extensionDecl.genericWhereClause != nil || !extensionDecl.extendedType.isPlainTypeName
+    }
+
     /// Whether a declaration directly inside this one is a member of a type.
     var isTypeScope: Bool {
         `is`(StructDeclSyntax.self) || `is`(EnumDeclSyntax.self) || `is`(ClassDeclSyntax.self)
             || `is`(ActorDeclSyntax.self) || `is`(ExtensionDeclSyntax.self) || `is`(ProtocolDeclSyntax.self)
+    }
+}
+
+extension TypeSyntax {
+    /// Whether the type is a name or a chain of member names (`Checkout.Placed`) with no generic
+    /// arguments, so nothing in it says the type is generic.
+    fileprivate var isPlainTypeName: Bool {
+        if let identifier = `as`(IdentifierTypeSyntax.self) { return identifier.genericArgumentClause == nil }
+        if let member = `as`(MemberTypeSyntax.self) { return member.genericArgumentClause == nil && member.baseType.isPlainTypeName }
+        // Sugar (`[Int]`, `Int?`, `[String: Int]`) spells a generic type's arguments.
+        return false
     }
 }
 

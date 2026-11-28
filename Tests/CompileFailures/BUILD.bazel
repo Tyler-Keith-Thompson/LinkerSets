@@ -36,6 +36,26 @@ swift_compile_failure_test(
 )
 
 swift_compile_failure_test(
+    name = "MemberOfGenericTypeExtension",
+    size = "small",
+    src = "MemberOfGenericTypeExtension.swift",
+    expected_errors = ["error: static stored properties not supported in generic types"],
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
+    tags = ["debug-only"],
+    deps = ["//Sources/LinkerSets"],
+)
+
+swift_compile_failure_test(
+    name = "MemberOfSpecializedExtension",
+    size = "small",
+    src = "MemberOfSpecializedExtension.swift",
+    expected_errors = ["error: '@LinkerSetEntry' cannot apply to a member of a generic type: a record holds one concrete value"],
+    plugins = {"//Sources/LinkerSetsMacros": "LinkerSetsMacros"},
+    tags = ["debug-only"],
+    deps = ["//Sources/LinkerSets"],
+)
+
+swift_compile_failure_test(
     name = "InstanceProperty",
     size = "small",
     src = "InstanceProperty.swift",

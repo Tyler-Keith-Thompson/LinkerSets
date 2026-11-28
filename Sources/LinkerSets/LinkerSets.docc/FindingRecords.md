@@ -92,7 +92,10 @@ skips it rather than call an accessor whose contract it doesn't know.
 
 ### Records the linker never saw
 
-A record is in the program only if its module is. SwiftPM and Bazel link every module a target
-depends on, so a module whose only job is to declare records still reaches the program. A build
-that links a static library's members only when something calls into them leaves such a module
-out. Link it whole: `-force_load` on Apple platforms, `--whole-archive` on Linux.
+A record is in the program only if its object file is. SwiftPM, and Bazel for `swift_library`
+(whose `alwayslink` defaults to `True`), link every object file of each module a target depends
+on, so a module whose only job is to declare records still reaches the program. A build that
+links a static archive's members only when something references them leaves such a file out,
+even from a module the program calls into. Link it whole: `-force_load` on Apple platforms,
+`--whole-archive` on Linux, `alwayslink = True` on a Bazel `cc_library` or `objc_library`.
+`-ObjC` isn't enough; <doc:PlatformsAndLinking#Linking-modes> says what it keeps.

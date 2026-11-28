@@ -40,10 +40,24 @@ Records survive dead stripping (`-dead_strip`, `--gc-sections`) in debug and rel
 record is marked `@used`, and the section is kept. Shared libraries carry their own records,
 found once the loader has mapped them, whether linked at launch or opened later with `dlopen`.
 
-A record is in the program only if its object file is. SwiftPM and Bazel link every module a target
-depends on. A build that pulls a static archive's members in only on demand leaves out a module
-nothing calls into: link it whole with `-force_load` (Apple platforms) or `--whole-archive`
-(Linux).
+A record is in the program only if its object file is. The linker decides this per object file,
+not per module. It takes a member of a static archive only when something already linked
+references a symbol in it. So a file of a module that the program does call into can still be
+left out, with its records, when nothing references that file. Dead stripping is a separate step:
+it never removes a record from an object file that was linked.
+
+SwiftPM links every object file of each module a target depends on. Bazel does the same only for
+targets with `alwayslink = True`. That is `swift_library`'s default in rules_swift, but
+`cc_library` and `objc_library` default to `False`, so their object files are linked only on
+demand. To link an archive whole, pass `-force_load` (Apple platforms) or `--whole-archive`
+(Linux, Android), or set `alwayslink` on the Bazel target.
+
+With `-ObjC`, Apple's linker loads the archive members that hold Objective-C classes or
+categories, Swift type metadata (`__swift5_types`) or protocol conformances (`__swift5_proto`).
+It still leaves out a member that holds only records, such as one whose records are on functions
+or globals, inside a private enum, or in an extension that adds static members but no
+conformance. Those members need `-force_load`. These are the linker's
+rules, seen with Xcode's `ld` and Swift 6.4.2; LinkerSets has no test of them.
 
 ### Loading and unloading during a read
 

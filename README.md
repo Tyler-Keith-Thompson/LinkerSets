@@ -154,10 +154,12 @@ guide has the measurements and `just benchmark` repeats them.
 | WebAssembly (WASI) | Supported and tested under wasmtime, in debug and release builds; a WebAssembly program is one statically linked module |
 | Windows | Supported and tested in CI (`windows-latest`), across statically linked modules |
 
-A record is only in the program if its module is. SwiftPM and Bazel link every module a target
-depends on. A build that leaves out a static library's modules when nothing calls into them needs
-`-force_load` (macOS) or `--whole-archive` (Linux) for a module whose only job is to declare
-records.
+A record is only in the program if its object file is. SwiftPM, and Bazel for `swift_library`,
+link every object file of each module a target depends on. A build that takes a static archive's
+members only when something references them needs `-force_load` (Apple platforms) or
+`--whole-archive` (Linux) for an archive that declares records; `-ObjC` isn't enough. The
+[Platforms and linking](https://tyler-keith-thompson.github.io/LinkerSets/documentation/linkersets/platformsandlinking)
+article has the details.
 
 ## Installation
 
